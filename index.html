@@ -12,7 +12,6 @@
     <!-- Chart.js (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
-        /* Prevent zoom jank on iOS when tapping inputs */
         input,
         select,
         textarea,
@@ -20,7 +19,7 @@
             font-size: 16px;
         }
 
-        /* Hide number input spinners */
+        /* iOS zoom fix */
         input[type=number]::-webkit-outer-spin-button,
         input[type=number]::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -31,14 +30,16 @@
 
 <body class="bg-slate-50 text-slate-900">
     <div class="max-w-6xl mx-auto px-4 py-5">
-        <!-- Header: Date / Week Info + Import/Export -->
+        <!-- Header: Date / Week Info + Controls -->
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="space-y-0.5">
                 <h1 id="dateHeading" class="text-lg font-semibold tracking-tight"></h1>
                 <p id="weekMeta" class="text-sm text-slate-600"></p>
                 <p id="eventBanner" class="text-xs font-medium text-amber-700"></p>
             </div>
-            <div class="flex gap-2">
+            <div class="flex items-center gap-2">
+                <button id="passBtn"
+                    class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100">Passcode</button>
                 <button id="exportBtn"
                     class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 active:scale-[.99]">Export</button>
                 <label
@@ -179,8 +180,7 @@
         }
         function addDays(dt, n) { const d = new Date(dt); d.setDate(d.getDate() + n); d.setHours(12); return d; }
         function addWeeks(dt, n) { return addDays(dt, n * 7); }
-        function weekKey(dt) {
-            // Calendar-year storage key (kept for data compatibility)
+        function weekKey(dt) { // calendar-year storage key (compat)
             const monday = startOfWeek(dt);
             const y = monday.getFullYear();
             const oneJan = new Date(y, 0, 1, 12);
@@ -216,8 +216,7 @@
             const weekInQ = Math.floor(diffDays / 7) + 1;
             return { q, weekInQ };
         }
-        function overallWeekNumber(dt) {
-            // 1-based week index since academic year started (Q1 start Monday)
+        function overallWeekNumber(dt) { // 1-based since academic year start
             const start = startOfWeek(Q1_START);
             const monday = startOfWeek(dt);
             const diffDays = Math.floor((monday - start) / 86400000);
@@ -239,22 +238,61 @@
         }
 
         /*************************************************
-         * Storage model (localStorage)
+         * Storage model (localStorage) + optional encryption
          *************************************************/
-        const LS_KEY = 'habitTrackerV1';
+        const LS_KEY = 'habitTrackerV1';            // plaintext
+        const LS_ENC = 'habitTrackerV1_enc';       // encrypted {iv, ct}
+        const LS_META = 'habitTrackerV1_meta';     // {salt, iterations}
 
-        const initialState = {
-            habits: [], // {id,title,type:'daily'|'weekly',createdAt,order}
-            completions: { daily: {}, weekly: {} }
-        };
+        const initialState = { habits: [], completions: { daily: {}, weekly: {} } };
 
-        function load() {
+        function loadPlain() {
             try { return JSON.parse(localStorage.getItem(LS_KEY)) || structuredClone(initialState); }
             catch (e) { return structuredClone(initialState); }
         }
-        function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
-        let state = load();
+        // b64 helpers
+        const b2a = (bytes) => btoa(String.fromCharCode(...bytes));
+        const a2b = (b64) => new Uint8Array(atob(b64).split('').map(c => c.charCodeAt(0)));
+
+        async function deriveAesKey(pass, saltB64, iterations) {
+            const enc = new TextEncoder();
+            const baseKey = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+            return await crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt: a2b(saltB64), iterations, hash: 'SHA-256' },
+                baseKey,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+        async function encryptJSON(obj, key) {
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const data = new TextEncoder().encode(JSON.stringify(obj));
+            const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
+            return { iv: b2a(iv), ct: b2a(new Uint8Array(ct)) };
+        }
+        async function decryptJSON(bundle, key) {
+            const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: a2b(bundle.iv) }, key, a2b(bundle.ct));
+            return JSON.parse(new TextDecoder().decode(new Uint8Array(pt)));
+        }
+
+        // runtime vars
+        let state = structuredClone(initialState);
+        let passEnabled = false;
+        let passKey = null; // CryptoKey
+        let meta = null;    // {salt, iterations}
+
+        async function save() {
+            if (passEnabled && passKey) {
+                const bundle = await encryptJSON(state, passKey);
+                localStorage.setItem(LS_ENC, JSON.stringify(bundle));
+                localStorage.setItem(LS_META, JSON.stringify(meta));
+                localStorage.removeItem(LS_KEY); // no plaintext
+            } else {
+                localStorage.setItem(LS_KEY, JSON.stringify(state));
+            }
+        }
 
         /*************************************************
          * UI Helpers + CRUD
@@ -329,6 +367,7 @@
         const weekBarLabel = document.getElementById('weekBarLabel');
         const weekPct = document.getElementById('weekPct');
 
+        const passBtn = document.getElementById('passBtn');
         const exportBtn = document.getElementById('exportBtn');
         const importInput = document.getElementById('importInput');
 
@@ -449,12 +488,11 @@
             const ctx = document.getElementById('trendChart');
             const startMon = startOfWeek(Q1_START);
             const todayMon = startOfWeek(new Date());
-            const currentWeek = Math.max(1, overallWeekNumber(todayMon)); // 1-based since Q1 start
+            const currentWeek = Math.max(1, overallWeekNumber(todayMon));
             const windowSize = Math.min(8, currentWeek);
 
             const labels = [];
             const data = [];
-            // Only show weeks within the academic year, labeled W1..Wn
             for (let i = currentWeek - windowSize + 1; i <= currentWeek; i++) {
                 const wkMon = addWeeks(startMon, i - 1);
                 const { pct } = computeWeekProgress(wkMon);
@@ -484,6 +522,56 @@
         }
 
         /*************************************************
+         * Passcode actions
+         *************************************************/
+        async function setPasscode() {
+            if (passEnabled) { alert('Passcode already set.'); return; }
+            const p1 = prompt('Set a passcode:'); if (!p1) return;
+            const p2 = prompt('Repeat passcode:'); if (p1 !== p2) { alert('Passcodes do not match.'); return; }
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            meta = { salt: b2a(salt), iterations: 150000 };
+            passKey = await deriveAesKey(p1, meta.salt, meta.iterations);
+            passEnabled = true;
+            await save();
+            alert('Passcode set. Your data is now encrypted on this device.');
+        }
+        async function lockNow() {
+            if (!passEnabled) { const ok = confirm('No passcode set. Set one now?'); if (ok) await setPasscode(); return; }
+            await save();
+            location.reload();
+        }
+        async function changePasscode() {
+            if (!passEnabled) { alert('No passcode set.'); return; }
+            const cur = prompt('Enter current passcode:'); if (cur === null) return;
+            try {
+                const testKey = await deriveAesKey(cur, meta.salt, meta.iterations);
+                // Try encrypt-decrypt a small piece via current encrypted bundle (if present)
+                const enc = localStorage.getItem(LS_ENC);
+                if (enc) { await decryptJSON(JSON.parse(enc), testKey); }
+            } catch (e) { alert('Incorrect current passcode.'); return; }
+            const p1 = prompt('New passcode:'); if (!p1) return;
+            const p2 = prompt('Repeat new passcode:'); if (p1 !== p2) { alert('Passcodes do not match.'); return; }
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            meta = { salt: b2a(salt), iterations: 150000 };
+            passKey = await deriveAesKey(p1, meta.salt, meta.iterations);
+            await save();
+            alert('Passcode changed.');
+        }
+        async function removePasscode() {
+            if (!passEnabled) { alert('No passcode set.'); return; }
+            if (!confirm('Remove passcode and store data in plaintext on this device?')) return;
+            passEnabled = false; passKey = null; meta = null;
+            localStorage.removeItem(LS_META);
+            localStorage.removeItem(LS_ENC);
+            await save();
+            alert('Passcode removed.');
+        }
+
+        function updatePassBtn() {
+            passBtn.textContent = passEnabled ? 'Passcode (On)' : 'Passcode (Off)';
+        }
+
+        /*************************************************
          * Event wiring
          *************************************************/
         prevDay.addEventListener('click', () => { viewDay = addDays(viewDay, -1); renderDaily(); });
@@ -497,31 +585,93 @@
         addDailyBtn.addEventListener('click', () => addHabit('daily'));
         addWeeklyBtn.addEventListener('click', () => addHabit('weekly'));
 
-        exportBtn.addEventListener('click', () => {
-            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'habit-tracker-backup.json'; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        passBtn.addEventListener('click', async () => {
+            if (!passEnabled) {
+                const ok = confirm('Set a passcode to encrypt your data on this device?');
+                if (ok) { await setPasscode(); updatePassBtn(); }
+                return;
+            }
+            const action = prompt('Type one: lock / change / remove');
+            if (!action) return;
+            const a = action.toLowerCase();
+            if (a.startsWith('lock')) { await lockNow(); }
+            else if (a.startsWith('change')) { await changePasscode(); updatePassBtn(); }
+            else if (a.startsWith('remove')) { await removePasscode(); updatePassBtn(); }
         });
-        importInput.addEventListener('change', (e) => {
+
+        exportBtn.addEventListener('click', async () => {
+            function download(name, text) {
+                const blob = new Blob([text], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = name; a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+            }
+            if (passEnabled && !passKey) {
+                alert('Unlock with your passcode first, then export.');
+                return;
+            }
+            if (passEnabled && passKey) {
+                const bundle = await encryptJSON(state, passKey);
+                download('habit-tracker-backup.enc.json', JSON.stringify({ enc: bundle, meta }, null, 2));
+            } else {
+                download('habit-tracker-backup.json', JSON.stringify(state, null, 2));
+            }
+        });
+
+        importInput.addEventListener('change', async (e) => {
             const file = e.target.files?.[0]; if (!file) return;
             const reader = new FileReader();
-            reader.onload = () => {
+            reader.onload = async () => {
                 try {
-                    const obj = JSON.parse(reader.result); if (obj && obj.habits && obj.completions) { state = obj; save(); renderAll(); alert('Import successful.'); }
-                    else alert('Invalid file format.');
+                    const obj = JSON.parse(reader.result);
+                    if (obj && obj.enc && obj.meta) {
+                        const pass = prompt('Enter passcode for this backup:'); if (!pass) return;
+                        const key = await deriveAesKey(pass, obj.meta.salt, obj.meta.iterations || 150000);
+                        const plain = await decryptJSON(obj.enc, key);
+                        state = plain; await save(); renderAll(); alert('Encrypted import successful.');
+                    } else if (obj && obj.habits && obj.completions) {
+                        state = obj; await save(); renderAll(); alert('Import successful.');
+                    } else {
+                        alert('Invalid file format.');
+                    }
                 } catch (err) { alert('Failed to import: ' + err.message); }
             };
             reader.readAsText(file);
             e.target.value = '';
         });
 
-        // Initial render
-        renderAll();
+        /*************************************************
+         * Boot
+         *************************************************/
+        (async function init() {
+            // detect encryption
+            const encStr = localStorage.getItem(LS_ENC);
+            const metaStr = localStorage.getItem(LS_META);
+            if (encStr && metaStr) {
+                passEnabled = true; meta = JSON.parse(metaStr);
+                for (let tries = 0; tries < 3; tries++) {
+                    const pass = prompt('Enter passcode to unlock:');
+                    if (pass === null) break;
+                    try {
+                        passKey = await deriveAesKey(pass, meta.salt, meta.iterations);
+                        state = await decryptJSON(JSON.parse(encStr), passKey);
+                        break;
+                    } catch (e) { alert('Incorrect passcode.'); }
+                }
+                if (!state || !state.habits) {
+                    // Keep app usable but with empty data (user can try again later)
+                    state = structuredClone(initialState);
+                }
+            } else {
+                state = loadPlain();
+            }
 
-        // Heads-up re: your example date
-        console.log('Note: 07 Sept 2025 is a Sunday. Monday is 08 Sept 2025.');
+            updatePassBtn();
+            renderAll();
+
+            console.log('Note: 07 Sept 2025 is a Sunday. Monday is 08 Sept 2025.');
+        })();
     </script>
 </body>
 
