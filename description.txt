@@ -1,0 +1,91 @@
+
+- Be able to add/modify/remove habits
+- Separate Weekly & Daily habits shown 
+- Weekly refresh every week and daily every day
+- There a feature where i Can see my progress (idk maybe percent of stuff done per week or some graphs - you choose) 
+- I can tick of stuff ive done early (e.g. habit/task for week#2 in week#1 but not the other way around)
+- Notes for each week
+- At the top i want to see: 
+
+date; Week number overall; week number of this quartile; quartile; 
+
+So e.g. for the date 07Sept2025 id see: 
+
+Monday 07Sept2025; Week #2; week#2; Q1
+
+- easy mobile and web access
+- minimalistic & intuitive UI
+
+my calendar: 
+
+
+Quartile 1
+
+Courses: September 1 – October 24
+
+Examinations: October 27 – November 8
+
+Important Dates & Events:
+
+Sept. 26: Momentum (no teaching)
+
+Oct. 12: Closing date registration & withdrawal exams/courses Q1
+
+Quartile 2
+
+Courses: November 10 – January 16
+
+Examinations: January 19 – January 31
+
+Important Dates & Events:
+
+Nov. 15: Opening date for registration Q3 & Q4
+
+Dec. 22 – Jan. 2: Christmas recess (no teaching, TU/e closed Dec. 25 – Jan. 2)
+
+Jan. 4: Closing date registration & withdrawal exams/courses Q2
+
+
+Quartile 3
+
+Courses: February 2 – April 3
+
+Examinations: April 7 – April 18
+
+Important Dates & Events:
+
+Feb. 16–20: Carnival holiday
+
+Mar. 14: Master’s open day (no teaching from 17:30)
+
+Mar. 22: MyFuture week + Closing date registration & withdrawal exams/courses Q3
+
+Apr. 3: Good Friday
+
+Apr. 5: Easter Sunday
+
+Apr. 6: Easter Monday
+
+Quartile 4
+
+Courses: April 20 – June 19
+
+Examinations: June 22 – July 4
+
+Important Dates & Events:
+
+Apr. 27: King’s Day
+
+May 4: Bridge Day
+
+May 5: Liberation Day
+
+May 14–15: Ascension Day + Bridge Day
+
+May 24: Whitsun
+
+May 25: Whit Monday
+
+June 7: Closing date registration & withdrawal exams/courses Q4
+
+June 15: Opening registration for Q1 & Q2 (next year)
