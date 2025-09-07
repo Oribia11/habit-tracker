@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minimal Habit/Task Tracker</title>
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.441.0/font/lucide.css" />
+    <!-- Chart.js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        /* Prevent zoom jank on iOS when tapping inputs */
+        input,
+        select,
+        textarea,
+        button {
+            font-size: 16px;
+        }
+
+        /* Hide number input spinners */
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+    <div class="max-w-6xl mx-auto px-4 py-5">
+        <!-- Header: Date / Week Info + Import/Export -->
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="space-y-0.5">
+                <h1 id="dateHeading" class="text-lg font-semibold tracking-tight"></h1>
+                <p id="weekMeta" class="text-sm text-slate-600"></p>
+                <p id="eventBanner" class="text-xs font-medium text-amber-700"></p>
+            </div>
+            <div class="flex gap-2">
+                <button id="exportBtn"
+                    class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 active:scale-[.99]">Export</button>
+                <label
+                    class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 cursor-pointer">
+                    <span>Import</span>
+                    <input id="importInput" type="file" accept="application/json" class="hidden" />
+                </label>
+            </div>
+        </div>
+
+        <!-- Top Stats: Progress + Trend (compact, aligned) -->
+        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-800">This week</h3>
+                    <div id="weekPct" class="text-sm font-medium text-slate-700">0%</div>
+                </div>
+                <div class="mt-2 h-3 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div id="weekBar" class="h-full bg-emerald-500" style="width:0%"></div>
+                </div>
+                <p id="weekBarLabel" class="text-[11px] text-slate-500 mt-1"></p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-800">Weekly completion trend</h3>
+                    <div class="text-xs text-slate-500">Since Q1 start</div>
+                </div>
+                <div id="trendWrap" class="mt-1 h-28 md:h-32">
+                    <canvas id="trendChart" class="w-full h-full"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main: Daily & Weekly side-by-side (aligned heights) -->
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Daily Column -->
+            <section id="dailyCol" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 text-sm">
+                        <button id="prevDay"
+                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">◀</button>
+                        <button id="todayBtn"
+                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">Today</button>
+                        <button id="nextDay"
+                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">▶</button>
+                        <span id="dailyDateLabel" class="ml-2 text-slate-600"></span>
+                    </div>
+                    <button id="addDaily"
+                        class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 text-sm">+
+                        Daily habit</button>
+                </div>
+                <div id="dailyList" class="mt-3 space-y-2 max-h-[44vh] overflow-auto pr-1"></div>
+            </section>
+
+            <!-- Weekly Column -->
+            <section id="weeklyCol" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 text-sm">
+                        <button id="prevWeek"
+                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">◀</button>
+                        <button id="thisWeekBtn"
+                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">This
+                            week</button>
+                        <button id="nextWeek"
+                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">▶</button>
+                        <span id="weeklyRangeLabel" class="ml-2 text-slate-600"></span>
+                    </div>
+                    <button id="addWeekly"
+                        class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 text-sm">+
+                        Weekly habit</button>
+                </div>
+                <div id="weeklyList" class="mt-3 space-y-2 max-h-[44vh] overflow-auto pr-1"></div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <p class="mt-4 text-[11px] text-slate-500">Local-only, privacy-friendly. Data is saved in your browser on this
+            device. No accounts, no servers.</p>
+    </div>
+
+    <script>
+        /*************************************************
+         * Academic calendar (2025–2026) — Quartiles & events
+         *************************************************/
+        const ACADEMIC = {
+            q1: { id: 'Q1', start: '2025-09-01', end: '2025-11-08' },
+            q2: { id: 'Q2', start: '2025-11-10', end: '2026-01-31' },
+            q3: { id: 'Q3', start: '2026-02-02', end: '2026-04-18' },
+            q4: { id: 'Q4', start: '2026-04-20', end: '2026-07-04' },
+            important: [
+                { date: '2025-09-26', label: 'Momentum (no teaching)' },
+                { date: '2025-10-12', label: 'Closing date: registration/withdrawal exams & courses Q1' },
+                { date: '2025-11-15', label: 'Opens: registration Q3 & Q4' },
+                { start: '2025-12-22', end: '2026-01-02', label: 'Christmas recess (no teaching)' },
+                { date: '2026-01-04', label: 'Closing date: registration/withdrawal exams & courses Q2' },
+                { start: '2026-02-16', end: '2026-02-20', label: 'Carnival holiday' },
+                { date: '2026-03-14', label: "Master's open day (no teaching from 17:30)" },
+                { date: '2026-03-22', label: 'MyFuture week + Closing date registration/withdrawal Q3' },
+                { date: '2026-04-03', label: 'Good Friday' },
+                { date: '2026-04-05', label: 'Easter Sunday' },
+                { date: '2026-04-06', label: 'Easter Monday' },
+                { date: '2026-04-27', label: "King's Day" },
+                { date: '2026-05-04', label: 'Bridge Day' },
+                { date: '2026-05-05', label: 'Liberation Day' },
+                { start: '2026-05-14', end: '2026-05-15', label: 'Ascension Day + Bridge Day' },
+                { date: '2026-05-24', label: 'Whitsun' },
+                { date: '2026-05-25', label: 'Whit Monday' },
+                { date: '2026-06-07', label: 'Closing date registration/withdrawal exams & courses Q4' },
+                { date: '2026-06-15', label: 'Opening registration for Q1 & Q2 (next year)' },
+            ]
+        };
+
+        /*************************************************
+         * Date helpers (local timezone, Monday-based weeks)
+         *************************************************/
+        const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+        const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        function dFromISO(iso) {
+            const [y, m, d] = iso.split('-').map(Number);
+            const dt = new Date(y, m - 1, d, 12, 0, 0, 0);
+            dt.setHours(12);
+            return dt;
+        }
+        function toISODate(dt) {
+            const y = dt.getFullYear();
+            const m = String(dt.getMonth() + 1).padStart(2, '0');
+            const d = String(dt.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        function startOfWeek(dt) {
+            const d = new Date(dt);
+            const day = d.getDay();
+            const diff = (day === 0 ? -6 : 1 - day);
+            d.setDate(d.getDate() + diff);
+            d.setHours(12);
+            return d;
+        }
+        function addDays(dt, n) { const d = new Date(dt); d.setDate(d.getDate() + n); d.setHours(12); return d; }
+        function addWeeks(dt, n) { return addDays(dt, n * 7); }
+        function weekKey(dt) {
+            // Calendar-year storage key (kept for data compatibility)
+            const monday = startOfWeek(dt);
+            const y = monday.getFullYear();
+            const oneJan = new Date(y, 0, 1, 12);
+            const days = Math.floor((monday - startOfWeek(oneJan)) / 86400000);
+            const wk = Math.floor(days / 7) + 1;
+            return `${y}-W${String(wk).padStart(2, '0')}`;
+        }
+        function formatHeadingDate(dt) {
+            const w = WEEKDAY[dt.getDay()];
+            const d = String(dt.getDate()).padStart(2, '0');
+            const m = MONTH_ABBR[dt.getMonth()];
+            const y = dt.getFullYear();
+            return `${w} ${d}${m}${y}`;
+        }
+
+        /*************************************************
+         * Quartile + academic-week calculations
+         *************************************************/
+        const Q_LIST = [ACADEMIC.q1, ACADEMIC.q2, ACADEMIC.q3, ACADEMIC.q4];
+        const Q1_START = dFromISO(ACADEMIC.q1.start); // academic year baseline
+
+        function findQuartile(dt) {
+            const iso = toISODate(dt);
+            for (const q of Q_LIST) { if (iso >= q.start && iso <= q.end) return q; }
+            return null;
+        }
+        function weekNumberInQuartile(dt) {
+            const q = findQuartile(dt);
+            if (!q) return { q: null, weekInQ: null };
+            const start = startOfWeek(dFromISO(q.start));
+            const monday = startOfWeek(dt);
+            const diffDays = Math.floor((monday - start) / 86400000);
+            const weekInQ = Math.floor(diffDays / 7) + 1;
+            return { q, weekInQ };
+        }
+        function overallWeekNumber(dt) {
+            // 1-based week index since academic year started (Q1 start Monday)
+            const start = startOfWeek(Q1_START);
+            const monday = startOfWeek(dt);
+            const diffDays = Math.floor((monday - start) / 86400000);
+            return Math.floor(diffDays / 7) + 1;
+        }
+        function formatWeekRange(dt) {
+            const mon = startOfWeek(dt);
+            const sun = addDays(mon, 6);
+            const m1 = MONTH_ABBR[mon.getMonth()], m2 = MONTH_ABBR[sun.getMonth()];
+            return `${String(mon.getDate()).padStart(2, '0')}${m1}${mon.getFullYear()} – ${String(sun.getDate()).padStart(2, '0')}${m2}${sun.getFullYear()}`;
+        }
+        function todayEventBanner(dt) {
+            const iso = toISODate(dt);
+            for (const e of ACADEMIC.important) {
+                if (e.date && e.date === iso) return e.label;
+                if (e.start && e.end && iso >= e.start && iso <= e.end) return e.label;
+            }
+            return '';
+        }
+
+        /*************************************************
+         * Storage model (localStorage)
+         *************************************************/
+        const LS_KEY = 'habitTrackerV1';
+
+        const initialState = {
+            habits: [], // {id,title,type:'daily'|'weekly',createdAt,order}
+            completions: { daily: {}, weekly: {} }
+        };
+
+        function load() {
+            try { return JSON.parse(localStorage.getItem(LS_KEY)) || structuredClone(initialState); }
+            catch (e) { return structuredClone(initialState); }
+        }
+        function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+        let state = load();
+
+        /*************************************************
+         * UI Helpers + CRUD
+         *************************************************/
+        function uid() { return Math.random().toString(36).slice(2, 10); }
+        function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+
+        function addHabit(type) {
+            const title = prompt(`New ${type} habit name:`)?.trim();
+            if (!title) return;
+            state.habits.push({ id: uid(), title, type, createdAt: Date.now(), order: Date.now() });
+            save(); renderAll();
+        }
+        function editHabit(id) {
+            const h = state.habits.find(h => h.id === id); if (!h) return;
+            const next = prompt('Rename habit:', h.title)?.trim();
+            if (!next) return;
+            h.title = next; save(); renderAll();
+        }
+        function deleteHabit(id) {
+            const h = state.habits.find(h => h.id === id); if (!h) return;
+            if (!confirm(`Delete “${h.title}”?`)) return;
+            state.habits = state.habits.filter(x => x.id !== id);
+            for (const day in state.completions.daily) { if (state.completions.daily[day]) delete state.completions.daily[day][id]; }
+            for (const wk in state.completions.weekly) { if (state.completions.weekly[wk]) delete state.completions.weekly[wk][id]; }
+            save(); renderAll();
+        }
+
+        function isPastDay(viewDate) {
+            const t = dFromISO(toISODate(new Date()));
+            return toISODate(viewDate) < toISODate(t);
+        }
+        function isPastWeek(viewDate) {
+            const t = startOfWeek(new Date());
+            return weekKey(viewDate) < weekKey(t);
+        }
+        function toggleDaily(habitId, dateIso, value) {
+            state.completions.daily[dateIso] ||= {};
+            state.completions.daily[dateIso][habitId] = !!value;
+            save(); updateProgressBits();
+        }
+        function toggleWeekly(habitId, wkKey, value) {
+            state.completions.weekly[wkKey] ||= {};
+            state.completions.weekly[wkKey][habitId] = !!value;
+            save(); updateProgressBits();
+        }
+
+        /*************************************************
+         * Rendering
+         *************************************************/
+        const dateHeading = document.getElementById('dateHeading');
+        const weekMeta = document.getElementById('weekMeta');
+        const eventBanner = document.getElementById('eventBanner');
+
+        const dailyList = document.getElementById('dailyList');
+        const weeklyList = document.getElementById('weeklyList');
+
+        const prevDay = document.getElementById('prevDay');
+        const nextDay = document.getElementById('nextDay');
+        const todayBtn = document.getElementById('todayBtn');
+        const dailyDateLabel = document.getElementById('dailyDateLabel');
+
+        const prevWeek = document.getElementById('prevWeek');
+        const nextWeek = document.getElementById('nextWeek');
+        const thisWeekBtn = document.getElementById('thisWeekBtn');
+        const weeklyRangeLabel = document.getElementById('weeklyRangeLabel');
+
+        const addDailyBtn = document.getElementById('addDaily');
+        const addWeeklyBtn = document.getElementById('addWeekly');
+
+        const weekBar = document.getElementById('weekBar');
+        const weekBarLabel = document.getElementById('weekBarLabel');
+        const weekPct = document.getElementById('weekPct');
+
+        const exportBtn = document.getElementById('exportBtn');
+        const importInput = document.getElementById('importInput');
+
+        let viewDay = dFromISO(toISODate(new Date()));
+        let viewWeekDay = dFromISO(toISODate(new Date()));
+        let chart;
+
+        function renderHeader() {
+            const dt = dFromISO(toISODate(new Date()));
+            const dateText = formatHeadingDate(dt);
+            const { q, weekInQ } = weekNumberInQuartile(dt);
+            const overall = Math.max(1, overallWeekNumber(dt));
+            const qId = q ? q.id : 'N/A';
+            dateHeading.textContent = dateText;
+            weekMeta.textContent = `Week #${overall}; week #${weekInQ ?? '—'}; ${qId}`;
+
+            const banner = todayEventBanner(dt);
+            eventBanner.textContent = banner ? `Today: ${banner}` : '';
+        }
+
+        function renderDaily() {
+            dailyDateLabel.textContent = formatHeadingDate(viewDay);
+            const readOnly = isPastDay(viewDay);
+            const iso = toISODate(viewDay);
+
+            const habits = state.habits.filter(h => h.type === 'daily').sort((a, b) => a.order - b.order);
+            const done = state.completions.daily[iso] || {};
+
+            dailyList.innerHTML = '';
+            if (habits.length === 0) {
+                dailyList.appendChild(el(`<div class="text-sm text-slate-500">No daily habits yet.</div>`));
+            }
+
+            for (const h of habits) {
+                const row = el(`
+        <div class="group flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
+          <label class="flex items-center gap-3 text-sm">
+            <input type="checkbox" class="h-5 w-5 rounded border-slate-300" ${done[h.id] ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+            <span>${h.title}</span>
+          </label>
+          <div class="invisible group-hover:visible flex items-center gap-1">
+            <button class="px-2 py-1 text-xs rounded-lg border border-slate-300 bg-white hover:bg-slate-100" data-edit>Edit</button>
+            <button class="px-2 py-1 text-xs rounded-lg border border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100" data-del>Delete</button>
+          </div>
+        </div>`);
+                const cb = row.querySelector('input[type=checkbox]');
+                cb.addEventListener('change', (e) => toggleDaily(h.id, iso, e.target.checked));
+                row.querySelector('[data-edit]').addEventListener('click', () => editHabit(h.id));
+                row.querySelector('[data-del]').addEventListener('click', () => deleteHabit(h.id));
+                dailyList.appendChild(row);
+            }
+        }
+
+        function renderWeekly() {
+            weeklyRangeLabel.textContent = formatWeekRange(viewWeekDay);
+            const readOnly = isPastWeek(viewWeekDay);
+            const wk = weekKey(viewWeekDay);
+
+            const habits = state.habits.filter(h => h.type === 'weekly').sort((a, b) => a.order - b.order);
+            const done = state.completions.weekly[wk] || {};
+
+            weeklyList.innerHTML = '';
+            if (habits.length === 0) {
+                weeklyList.appendChild(el(`<div class="text-sm text-slate-500">No weekly habits yet.</div>`));
+            }
+
+            for (const h of habits) {
+                const row = el(`
+        <div class="group flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
+          <label class="flex items-center gap-3 text-sm">
+            <input type="checkbox" class="h-5 w-5 rounded border-slate-300" ${done[h.id] ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+            <span>${h.title}</span>
+          </label>
+          <div class="invisible group-hover:visible flex items-center gap-1">
+            <button class="px-2 py-1 text-xs rounded-lg border border-slate-300 bg-white hover:bg-slate-100" data-edit>Edit</button>
+            <button class="px-2 py-1 text-xs rounded-lg border border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100" data-del>Delete</button>
+          </div>
+        </div>`);
+                const cb = row.querySelector('input[type=checkbox]');
+                cb.addEventListener('change', (e) => toggleWeekly(h.id, wk, e.target.checked));
+                row.querySelector('[data-edit]').addEventListener('click', () => editHabit(h.id));
+                row.querySelector('[data-del]').addEventListener('click', () => deleteHabit(h.id));
+                weeklyList.appendChild(row);
+            }
+        }
+
+        // Progress
+        function computeWeekProgress(monday) {
+            const allDaily = state.habits.filter(h => h.type === 'daily');
+            const allWeekly = state.habits.filter(h => h.type === 'weekly');
+            const required = allDaily.length * 7 + allWeekly.length;
+            if (required === 0) return { pct: 0, num: 0, den: 0 };
+
+            let num = 0;
+            for (let i = 0; i < 7; i++) {
+                const iso = toISODate(addDays(monday, i));
+                const set = state.completions.daily[iso] || {};
+                for (const h of allDaily) { if (set[h.id]) num++; }
+            }
+            const wk = weekKey(monday);
+            const setW = state.completions.weekly[wk] || {};
+            for (const h of allWeekly) { if (setW[h.id]) num++; }
+
+            const pct = Math.round((num / required) * 100);
+            return { pct, num, den: required };
+        }
+
+        function updateProgressBits() {
+            const monday = startOfWeek(new Date());
+            const { pct, num, den } = computeWeekProgress(monday);
+            weekBar.style.width = pct + '%';
+            weekBarLabel.textContent = `${num} / ${den} tasks completed this week (${pct}%)`;
+            weekPct.textContent = pct + '%';
+            drawTrend();
+        }
+
+        function drawTrend() {
+            const ctx = document.getElementById('trendChart');
+            const startMon = startOfWeek(Q1_START);
+            const todayMon = startOfWeek(new Date());
+            const currentWeek = Math.max(1, overallWeekNumber(todayMon)); // 1-based since Q1 start
+            const windowSize = Math.min(8, currentWeek);
+
+            const labels = [];
+            const data = [];
+            // Only show weeks within the academic year, labeled W1..Wn
+            for (let i = currentWeek - windowSize + 1; i <= currentWeek; i++) {
+                const wkMon = addWeeks(startMon, i - 1);
+                const { pct } = computeWeekProgress(wkMon);
+                labels.push('W' + i);
+                data.push(pct);
+            }
+
+            if (chart) { chart.destroy(); }
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: [{ label: 'Completion %', data, tension: 0.35, pointRadius: 2 }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 100, ticks: { stepSize: 25 } }, x: { ticks: { maxRotation: 0, autoSkip: false } } },
+                    plugins: { legend: { display: false }, tooltip: { intersect: false } },
+                    elements: { line: { borderWidth: 2 }, point: { hitRadius: 6 } }
+                }
+            });
+        }
+
+        function renderAll() {
+            renderHeader();
+            renderDaily();
+            renderWeekly();
+            updateProgressBits();
+        }
+
+        /*************************************************
+         * Event wiring
+         *************************************************/
+        prevDay.addEventListener('click', () => { viewDay = addDays(viewDay, -1); renderDaily(); });
+        nextDay.addEventListener('click', () => { viewDay = addDays(viewDay, +1); renderDaily(); });
+        todayBtn.addEventListener('click', () => { viewDay = dFromISO(toISODate(new Date())); renderDaily(); });
+
+        prevWeek.addEventListener('click', () => { viewWeekDay = addWeeks(viewWeekDay, -1); renderWeekly(); });
+        nextWeek.addEventListener('click', () => { viewWeekDay = addWeeks(viewWeekDay, +1); renderWeekly(); });
+        thisWeekBtn.addEventListener('click', () => { viewWeekDay = dFromISO(toISODate(new Date())); renderWeekly(); });
+
+        addDailyBtn.addEventListener('click', () => addHabit('daily'));
+        addWeeklyBtn.addEventListener('click', () => addHabit('weekly'));
+
+        exportBtn.addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'habit-tracker-backup.json'; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        });
+        importInput.addEventListener('change', (e) => {
+            const file = e.target.files?.[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const obj = JSON.parse(reader.result); if (obj && obj.habits && obj.completions) { state = obj; save(); renderAll(); alert('Import successful.'); }
+                    else alert('Invalid file format.');
+                } catch (err) { alert('Failed to import: ' + err.message); }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+
+        // Initial render
+        renderAll();
+
+        // Heads-up re: your example date
+        console.log('Note: 07 Sept 2025 is a Sunday. Monday is 08 Sept 2025.');
+    </script>
+</body>
+
+</html>
