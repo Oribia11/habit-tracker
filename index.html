@@ -147,15 +147,18 @@
     .resp-exp-input { width:70px; padding:8px; border-radius:8px; border:1px solid #e6eef2; }
     .resp-chips { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
 
-    /* Grid layout for responsibility rows: title | chips | controls */
-    /* Use minmax(0, 1fr) so columns can shrink properly and avoid overflow */
-    .resp-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 110px; gap:12px; align-items:center; column-gap:14px; }
+    /* Grid layout for responsibility rows: title | controls (bar sits below) */
+    .resp-grid { display: grid; grid-template-columns: 1fr 110px; gap:12px; align-items:center; column-gap:14px; }
     .resp-left { min-width: 0; overflow: hidden; }
-    .resp-title { font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-    .resp-summary { font-size:13px; color:var(--muted); margin-top:4px; }
+    .resp-title { font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    .resp-summary { font-size:13px; color:var(--muted); margin-top:6px; }
     .resp-center { display:flex; justify-content:flex-start; gap:8px; flex-wrap:wrap; min-width:0; overflow:hidden; }
-    .resp-right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
-    .resp-exp-input { width:80px; }
+    .resp-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
+    .resp-exp-input { width:68px; padding:6px; font-weight:600; text-align:center; }
+    /* Container for bar + small labels */
+    .resp-bar-wrap { margin-top:12px; }
+    .resp-day-labels { display:flex; gap:0; margin-top:6px; }
+    .resp-day-label { flex: 0 0 calc(100% / 7); text-align:center; font-size:11px; color:var(--muted); }
 
     /* Ensure chips don't stretch into the controls area */
     .resp-chips { max-width: calc(100% - 8px); overflow: hidden; }
@@ -166,16 +169,21 @@
     .resp-link svg { margin:0; }
 
     /* Multi-week horizontal progress bar */
-    /* Continuous stacked per-day bar */
-    .resp-cont-bar { height:12px; border-radius:10px; background:var(--surface); overflow:hidden; display:flex; align-items:center; margin-top:12px; border:1px solid rgba(15,23,42,0.03); }
-    .resp-day-seg { height:100%; display:block; transition: width .18s linear; }
-    .day-col-0 { background: #60a5fa; } /* Mon */
-    .day-col-1 { background: #34d399; } /* Tue */
-    .day-col-2 { background: #f59e0b; } /* Wed */
-    .day-col-3 { background: #f97316; } /* Thu */
-    .day-col-4 { background: #ef4444; } /* Fri */
-    .day-col-5 { background: #a78bfa; } /* Sat */
-    .day-col-6 { background: #60a5fa; opacity:0.85; } /* Sun */
+    /* Continuous stacked per-day bar: fixed day cells with an inner fill so empty days are still clickable */
+    .resp-cont-bar { height:14px; border-radius:8px; background:transparent; overflow:hidden; display:flex; align-items:center; margin:0; border-radius:8px; }
+    .resp-day-cell { flex: 0 0 calc(100% / 7); height:100%; position:relative; display:flex; align-items:center; justify-content:center; cursor:pointer; background:var(--surface); }
+    .resp-day-cell + .resp-day-cell { border-left: 1px solid rgba(15,23,42,0.02); }
+    .resp-day-fill { height:100%; width:0%; border-radius:6px; transition: width .18s linear; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.12); }
+    .day-col-0 .resp-day-fill, .resp-day-fill.day-col-0 { background: #60a5fa; } /* Mon */
+    .day-col-1 .resp-day-fill, .resp-day-fill.day-col-1 { background: #34d399; } /* Tue */
+    .day-col-2 .resp-day-fill, .resp-day-fill.day-col-2 { background: #f59e0b; } /* Wed */
+    .day-col-3 .resp-day-fill, .resp-day-fill.day-col-3 { background: #f97316; } /* Thu */
+    .day-col-4 .resp-day-fill, .resp-day-fill.day-col-4 { background: #ef4444; } /* Fri */
+    .day-col-5 .resp-day-fill, .resp-day-fill.day-col-5 { background: #a78bfa; } /* Sat */
+    .day-col-6 .resp-day-fill, .resp-day-fill.day-col-6 { background: #60a5fa; opacity:0.85; } /* Sun */
+
+    /* small total badge */
+    .resp-total { font-size:12px; color:var(--muted); margin-top:6px; }
     </style>
 </head>
 
@@ -270,6 +278,15 @@
                     <h3 class="text-sm font-semibold text-slate-800">Responsibilities (hours)</h3>
                     <div class="flex items-center gap-2">
                         <button id="addRespBtn" onclick="addResponsibility()" class="btn primary small">+ Add</button>
+                    </div>
+                </div>
+                <!-- Combined totals for all responsibilities this week -->
+                <div id="respSummary" class="mt-3 flex items-center justify-between">
+                    <div id="respTotals" class="text-sm card-sub">0h logged / 0h expected</div>
+                    <div style="flex:0 0 48%; max-width:48%;">
+                        <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                            <div id="respTotalBar" class="h-full" style="width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2));"></div>
+                        </div>
                     </div>
                 </div>
                 <div id="respList" class="mt-2 space-y-2 list-fit"></div>
@@ -700,82 +717,118 @@
 
                 // Responsibilities rendering
                 function renderResponsibilities() {
-                        respList.innerHTML = '';
-                        const respKeys = Object.keys(state.responsibilities || {});
-                        if (respKeys.length === 0) {
-                                respList.appendChild(el(`<div class="text-sm text-slate-500">No responsibilities yet.</div>`));
-                                return;
+                    respList.innerHTML = '';
+                    const respKeys = Object.keys(state.responsibilities || {});
+                    if (respKeys.length === 0) {
+                        respList.appendChild(el(`<div class="text-sm text-slate-500">No responsibilities yet.</div>`));
+                        return;
+                    }
+
+                    const mon = startOfWeek(viewWeekDay);
+                    // compute combined totals for all responsibilities for this week
+                    let combinedLogged = 0; let combinedExpected = 0;
+                    for (const k of respKeys) {
+                        const rr = state.responsibilities[k];
+                        combinedExpected += Number(rr?.expectedHours) || 0;
+                        const ent = state.respEntries[k] || {};
+                        for (let i = 0; i < 7; i++) { const iso = toISODate(addDays(mon, i)); combinedLogged += parseFloat(ent[iso]) || 0; }
+                    }
+                    // update summary UI
+                    const respTotalsEl = document.getElementById('respTotals');
+                    const respTotalBar = document.getElementById('respTotalBar');
+                    if (respTotalsEl) respTotalsEl.textContent = `${combinedLogged}h logged / ${combinedExpected}h expected`;
+                    if (respTotalBar) {
+                        const pctAll = combinedExpected > 0 ? Math.round((combinedLogged / combinedExpected) * 100) : 0;
+                        respTotalBar.style.width = Math.min(100, Math.max(0, pctAll)) + '%';
+                    }
+                    // sort by title for predictability
+                    respKeys.sort((a, b) => (state.responsibilities[a].title || '').localeCompare(state.responsibilities[b].title || ''));
+
+                    for (const id of respKeys) {
+                        const r = state.responsibilities[id];
+                        const entries = state.respEntries[id] || {};
+                        // compute weekly totals and per-day values
+                        const days = [];
+                        let total = 0;
+                        for (let i = 0; i < 7; i++) {
+                            const iso = toISODate(addDays(mon, i));
+                            const v = parseFloat(entries[iso]) || 0;
+                            days.push({ iso, v });
+                            total += v;
                         }
-                        const mon = startOfWeek(viewWeekDay);
-                        for (const id of respKeys) {
-                                const r = state.responsibilities[id];
-                                const entries = state.respEntries[id] || {};
-                                // compute weekly totals and per-day values
-                                const days = [];
-                                let total = 0;
-                                for (let i = 0; i < 7; i++) {
-                                        const iso = toISODate(addDays(mon, i));
-                                        const v = parseFloat(entries[iso]) || 0; days.push({ iso, v }); total += v;
-                                }
 
-                                // removed per-day chips/buttons — using continuous bar only
+                        const pct = r.expectedHours ? Math.round((total / r.expectedHours) * 100) : 0;
 
-                                const row = el(`
-                                    <div class="resp-card">
-                                        <div class="resp-grid">
-                                            <div class="resp-left">
-                                                <div class="resp-title">${r.title}</div>
-                                                <div class="resp-summary">${total}h / ${r.expectedHours}h</div>
-                                            </div>
-                                            <div class="resp-center"></div>
-                                            <div class="resp-right">
-                                                <input type="number" min="0" step="0.5" value="${r.expectedHours}" class="resp-exp-input" data-exp>
-                                                <div class="resp-actions" style="display:flex; gap:8px;">
-                                                    <button class="resp-link" data-edit title="Rename">
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21h3.75L17.81 9.94l-3.75-3.75L3 17.25V21z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                                    </button>
-                                                    <button class="resp-link danger" data-del title="Delete">
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                                    </button>
-                                                </div>
-                                            </div>
+                        const row = el(`
+                            <div class="resp-card">
+                                <div class="resp-grid">
+                                    <div class="resp-left">
+                                        <div class="resp-title">${r.title}</div>
+                                        <div class="resp-summary">${total}h / ${r.expectedHours}h • ${pct}%</div>
+                                        <div class="resp-bar-wrap">
+                                            <div class="resp-cont-bar" aria-hidden="true"></div>
+                                            <div class="resp-day-labels" aria-hidden="true"></div>
                                         </div>
-                                        <div class="resp-cont-bar" aria-hidden="true"></div>
                                     </div>
-                                `);
+                                    <div class="resp-right">
+                                        <input type="number" min="0" step="0.5" value="${r.expectedHours}" class="resp-exp-input" data-exp title="Expected hours per week">
+                                        <div class="resp-actions" style="display:flex; gap:8px;">
+                                            <button class="resp-link" data-edit title="Rename">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21h3.75L17.81 9.94l-3.75-3.75L3 17.25V21z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            </button>
+                                            <button class="resp-link danger" data-del title="Delete">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
 
-                                // per-day chips removed; hover summary disabled as requested
+                        const editBtn = row.querySelector('[data-edit]');
+                        const delBtn = row.querySelector('[data-del]');
+                        const expInput = row.querySelector('[data-exp]');
+                        const contBar = row.querySelector('.resp-cont-bar');
+                        const labelRow = row.querySelector('.resp-day-labels');
 
-                                row.querySelector('[data-edit]').addEventListener('click', () => editResponsibility(id));
-                                row.querySelector('[data-del]').addEventListener('click', () => deleteResponsibility(id));
-                                row.querySelector('[data-exp]').addEventListener('change', (e) => { r.expectedHours = parseFloat(e.target.value) || 0; save(); renderAll(); });
+                        editBtn.addEventListener('click', () => editResponsibility(id));
+                        delBtn.addEventListener('click', () => deleteResponsibility(id));
+                        expInput.addEventListener('change', async (e) => { r.expectedHours = parseFloat(e.target.value) || 0; try { await save(); renderAll(); } catch (err) { alert('Failed to save: ' + (err && err.message ? err.message : String(err))); } });
 
-                                // render continuous per-day stacked bar (day colors show the spread)
-                                const contBar = row.querySelector('.resp-cont-bar');
-                                if (contBar) {
-                                    contBar.innerHTML = '';
-                                    const expected = Math.max(1, r.expectedHours || 0);
-                                    for (let i = 0; i < days.length; i++) {
-                                        const d = days[i];
-                                        const pct = Math.max(0, Math.min(100, Math.round((d.v / expected) * 100)));
-                                        const widthStyle = d.v > 0 && pct < 1 ? 'width:1px' : `width:${pct}%`;
-                                        const weekday = WEEKDAY[addDays(mon, i).getDay()].slice(0,3);
-                                        const seg = el(`<div class="resp-day-seg day-col-${i}" title="${weekday}: ${d.v}h" style="${widthStyle}"></div>`);
-                                        // allow clicking the segment to edit hours for that day
-                                        seg.addEventListener('click', () => {
-                                            const iso = d.iso;
-                                            const cur = parseFloat(state.respEntries[id]?.[iso]) || 0;
-                                            const v = parseFloat(prompt(`Hours logged on ${weekday} for ${r.title}:`, String(cur)) || '0') || 0;
-                                            state.respEntries[id] = state.respEntries[id] || {};
-                                            if (v <= 0) delete state.respEntries[id][iso]; else state.respEntries[id][iso] = v;
-                                            save(); renderAll();
-                                        });
-                                        contBar.appendChild(seg);
+                        // render day cells and labels
+                        if (contBar) {
+                            contBar.innerHTML = '';
+                            labelRow.innerHTML = '';
+                            const expected = Math.max(1, r.expectedHours || 0);
+                            for (let i = 0; i < days.length; i++) {
+                                const d = days[i];
+                                const weekday = WEEKDAY[addDays(mon, i).getDay()].slice(0, 3);
+                                const pctDay = Math.max(0, Math.min(100, Math.round((d.v / expected) * 100)));
+                                const fillWidth = d.v > 0 && pctDay < 1 ? 1 : pctDay;
+                                const cell = el(`<div class="resp-day-cell day-col-${i}" title="${weekday}: ${d.v}h"><div class="resp-day-fill day-col-${i}" style="width:${fillWidth}%;"></div></div>`);
+                                cell.addEventListener('click', async (ev) => {
+                                    ev.stopPropagation();
+                                    if (passEnabled && !passKey) {
+                                        const p = prompt('Enter passcode to unlock the app and save changes:');
+                                        if (!p) return;
+                                        try { passKey = await deriveAesKey(p, meta.salt, meta.iterations); } catch (e) { alert('Invalid passcode'); return; }
                                     }
-                                }
-
-                                respList.appendChild(row);
+                                    const iso = d.iso;
+                                    const cur = parseFloat(state.respEntries[id]?.[iso]) || 0;
+                                    const input = prompt(`Hours logged on ${weekday} for ${r.title}:`, String(cur || ''));
+                                    if (input === null) return;
+                                    const v = parseFloat(input || '0') || 0;
+                                    state.respEntries[id] = state.respEntries[id] || {};
+                                    if (v <= 0) delete state.respEntries[id][iso]; else state.respEntries[id][iso] = v;
+                                    try { await save(); renderAll(); } catch (err) { console.error('Save failed', err); alert('Failed to save: ' + (err && err.message ? err.message : String(err))); }
+                                });
+                                contBar.appendChild(cell);
+                                labelRow.appendChild(el(`<div class="resp-day-label">${weekday[0]}</div>`));
+                            }
                         }
+
+                        respList.appendChild(row);
+                    }
                 }
 
         // Progress
