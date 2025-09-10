@@ -1,4 +1,24 @@
 
+- How many hours are expected vs completed for the week. I can adjusts that whenever I want: 
+
+Calculus Tutoring - 2h of tutor hours + 3h of grading
+
+POLAR - 12h 
+
+Capstone System Integration- 8h + 2h at home
+
+SEP - 8h 
+
+Mechanics - 8h 
+
+EC2 - 8h 
+
+SnowCo - 2h 
+
+Startup - 4h
+
+**Total:** 57h a week
+
 - Be able to add/modify/remove habits
 - Separate Weekly & Daily habits shown 
 - Weekly refresh every week and daily every day

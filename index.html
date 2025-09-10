@@ -64,47 +64,158 @@
                 transform: scale(1);
             }
         }
+    /* Design tokens */
+    :root{
+        --bg: #f6f8fa;
+        --card: #ffffff;
+        --muted: #64748b;
+        --accent: #10b981;
+        --accent-2: #34d399;
+        --danger: #ef4444;
+        --surface: #f1f5f9;
+        --radius: 12px;
+        --gap: 12px;
+        --glass: rgba(255,255,255,0.6);
+    }
+    html, body { height: 100%; margin:0; background: linear-gradient(180deg, #f8fafc 0%, #f6f8fa 100%); }
+    body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #0f172a; }
+
+    /* App layout */
+    #app { height: 100vh; display: grid; grid-template-rows: auto auto 1fr; gap: var(--gap); padding: 18px; box-sizing: border-box; }
+
+    /* Card base */
+    .card {
+        background: linear-gradient(180deg, var(--card), #fbfdff);
+        border: 1px solid rgba(15,23,42,0.06);
+        border-radius: var(--radius);
+        box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(15,23,42,0.06); }
+    .card-compact { padding: 14px; }
+    .card-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .card-title { font-weight:700; color:#0f172a; font-size:14px; }
+    .card-sub { font-size:13px; color:var(--muted); }
+    .card-actions { display:flex; gap:10px; align-items:center; }
+
+    /* Buttons */
+    .btn { border-radius:10px; padding:8px 12px; border:1px solid rgba(2,6,23,0.06); background:#fff; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+    .btn.small { padding:6px 10px; font-size:13px; border-radius:8px; }
+    .btn.ghost { background:transparent; border-color: transparent; color:var(--muted); }
+    .btn.primary { background: linear-gradient(90deg,var(--accent),var(--accent-2)); color:white; border-color: rgba(16,185,129,0.18); box-shadow: 0 6px 16px rgba(16,185,129,0.08); }
+    .btn.danger { background: linear-gradient(90deg,#fb7185,#ef4444); color:white; }
+    .btn:focus { outline: 3px solid rgba(16,185,129,0.12); }
+
+    /* compact list area */
+    .list-fit { overflow:auto; max-height: calc(100vh - 220px); }
+
+    /* smaller notes area */
+    textarea#weekNotes { min-height:56px; font-size:13px; }
+
+    /* responsibilities day cell compact styling */
+    #respList .h-6 { height:22px; line-height:22px; font-size:11px; }
+
+    /* Segmented day chips */
+    .seg { display:inline-flex; align-items:center; justify-content:center; height:26px; min-width:28px; padding:0 6px; border-radius:6px; font-size:11px; margin-right:6px; border:1px solid rgba(15,23,42,0.04); box-shadow: inset 0 -1px 0 rgba(255,255,255,0.2); cursor:pointer; transition: transform .08s ease, box-shadow .08s ease; }
+    .seg:last-child { margin-right:0; }
+    .seg:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(2,6,23,0.06); }
+    .seg--filled { background: linear-gradient(90deg,var(--accent),var(--accent-2)); color: white; border-color: rgba(52,211,153,0.18); }
+    .seg--empty { background: var(--surface); color:var(--muted); }
+
+    /* Inputs */
+    input[type=number], input[type=text] { border: 1px solid #e6eef2; background: #fbfdff; padding:8px; border-radius:8px; }
+
+    /* thinner scrollbar */
+    ::-webkit-scrollbar { width:10px; height:10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.08); border-radius: 10px; }
+
+    /* Responsibilities specific */
+    .resp-card { background: linear-gradient(180deg,#ffffff,#fbfdff); border: 1px solid rgba(15,23,42,0.04); padding:12px; border-radius:10px; box-shadow: 0 6px 14px rgba(12,18,31,0.03); }
+    .resp-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .resp-title { display:flex; align-items:center; gap:8px; }
+    .resp-meta { font-size:12px; color:var(--muted); }
+    .resp-controls { display:flex; align-items:center; gap:10px; }
+    /* Make action buttons visually similar to task buttons */
+    .resp-link { background: var(--surface); border:none; color:var(--muted); cursor:pointer; font-weight:600; padding:6px 10px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; min-width:68px; height:34px; border:1px solid rgba(15,23,42,0.03); font-size:13px; }
+    .resp-link svg { margin-right:8px; }
+    .resp-link:hover { background: rgba(2,6,23,0.03); transform: translateY(-2px); }
+    .resp-link.danger { color: var(--danger); border-color: rgba(239,68,68,0.06); }
+
+    /* Hide action buttons until hover / keyboard focus */
+    .resp-actions { opacity: 0; transform: translateY(4px); transition: opacity .14s ease, transform .12s ease; pointer-events: none; }
+    .resp-card:hover .resp-actions, .resp-card:focus-within .resp-actions { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .resp-exp-input { width:70px; padding:8px; border-radius:8px; border:1px solid #e6eef2; }
+    .resp-chips { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
+
+    /* Grid layout for responsibility rows: title | chips | controls */
+    /* Use minmax(0, 1fr) so columns can shrink properly and avoid overflow */
+    .resp-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 110px; gap:12px; align-items:center; column-gap:14px; }
+    .resp-left { min-width: 0; overflow: hidden; }
+    .resp-title { font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    .resp-summary { font-size:13px; color:var(--muted); margin-top:4px; }
+    .resp-center { display:flex; justify-content:flex-start; gap:8px; flex-wrap:wrap; min-width:0; overflow:hidden; }
+    .resp-right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+    .resp-exp-input { width:80px; }
+
+    /* Ensure chips don't stretch into the controls area */
+    .resp-chips { max-width: calc(100% - 8px); overflow: hidden; }
+    .seg { flex: 0 0 auto; }
+
+    /* Make action buttons more compact so right column stays narrow */
+    .resp-link { min-width:40px; padding:6px; }
+    .resp-link svg { margin:0; }
+
+    /* Multi-week horizontal progress bar */
+    /* Continuous stacked per-day bar */
+    .resp-cont-bar { height:12px; border-radius:10px; background:var(--surface); overflow:hidden; display:flex; align-items:center; margin-top:12px; border:1px solid rgba(15,23,42,0.03); }
+    .resp-day-seg { height:100%; display:block; transition: width .18s linear; }
+    .day-col-0 { background: #60a5fa; } /* Mon */
+    .day-col-1 { background: #34d399; } /* Tue */
+    .day-col-2 { background: #f59e0b; } /* Wed */
+    .day-col-3 { background: #f97316; } /* Thu */
+    .day-col-4 { background: #ef4444; } /* Fri */
+    .day-col-5 { background: #a78bfa; } /* Sat */
+    .day-col-6 { background: #60a5fa; opacity:0.85; } /* Sun */
     </style>
 </head>
 
 <body class="bg-slate-50 text-slate-900">
-    <div class="max-w-6xl mx-auto px-4 py-5">
-        <!-- Header: Date / Week Info + Controls -->
-        <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="space-y-0.5">
-                <h1 id="dateHeading" class="text-lg font-semibold tracking-tight"></h1>
-                <p id="weekMeta" class="text-sm text-slate-600"></p>
-                <p id="eventBanner" class="text-xs font-medium text-amber-700"></p>
+    <div id="app" class="max-w-6xl mx-auto px-3 py-3">
+        <!-- Header: improved layout -->
+        <div class="card card-compact" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div>
+                <div id="dateHeading" class="card-title"></div>
+                <div id="weekMeta" class="card-sub" style="margin-top:4px;"></div>
+                <div id="eventBanner" class="card-sub" style="margin-top:4px;"></div>
             </div>
-            <div class="flex items-center gap-2">
-                <button id="passBtn"
-                    class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100">Passcode</button>
-                <button id="exportBtn"
-                    class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 active:scale-[.99]">Export</button>
-                <label
-                    class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 cursor-pointer">
-                    <span>Import</span>
+            <div class="card-actions">
+                <button id="passBtn" class="btn small ghost">Passcode</button>
+                <button id="exportBtn" class="btn small ghost">Export</button>
+                <label class="btn small ghost" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                    Import
                     <input id="importInput" type="file" accept="application/json" class="hidden" />
                 </label>
             </div>
         </div>
 
         <!-- Top Stats: Progress + Trend (compact, aligned) -->
-        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-800">This week</h3>
-                    <div id="weekPct" class="text-sm font-medium text-slate-700">0%</div>
+        <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="card card-compact">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">This week</div>
+                        <div id="weekBarLabel" class="card-sub" style="margin-top:6px;">0 / 0 tasks completed this week (0%)</div>
+                    </div>
+                    <div id="weekPct" class="card-title">0%</div>
                 </div>
-                <div class="mt-2 h-3 w-full bg-slate-200 rounded-full overflow-hidden">
-                    <div id="weekBar" class="h-full bg-emerald-500" style="width:0%"></div>
+                <div class="mt-2 h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div id="weekBar" class="h-full" style="width:0%; background:linear-gradient(90deg,var(--accent),#34d399);"></div>
                 </div>
-                <p id="weekBarLabel" class="text-[11px] text-slate-500 mt-1"></p>
             </div>
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-800">Weekly completion trend</h3>
-                    <div class="text-xs text-slate-500">Since Q1 start</div>
+            <div class="card card-compact">
+                <div class="card-header">
+                    <div class="card-title">Weekly completion trend</div>
+                    <div class="card-sub">Since Q1 start</div>
                 </div>
                 <div id="trendWrap" class="mt-1 h-28 md:h-32">
                     <canvas id="trendChart" class="w-full h-full"></canvas>
@@ -113,55 +224,56 @@
         </div>
 
         <!-- Main: Daily & Weekly side-by-side (aligned heights) -->
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
             <!-- Daily Column -->
-            <section id="dailyCol" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
+    <section id="dailyCol" class="card card-compact flex flex-col">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="flex items-center gap-2 text-sm">
-                        <button id="prevDay"
-                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">◀</button>
-                        <button id="todayBtn"
-                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">Today</button>
-                        <button id="nextDay"
-                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">▶</button>
+            <button id="prevDay" class="btn small ghost">◀</button>
+            <button id="todayBtn" class="btn small ghost">Today</button>
+            <button id="nextDay" class="btn small ghost">▶</button>
                         <span id="dailyDateLabel" class="ml-2 text-slate-600"></span>
                     </div>
-                    <button id="addDaily"
-                        class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 text-sm">+
-                        Daily habit</button>
+        <button id="addDaily" class="btn primary small">+ Daily</button>
                 </div>
-                <div id="dailyList" class="mt-3 space-y-2 max-h-[44vh] overflow-auto pr-1"></div>
+        <div id="dailyList" class="mt-2 space-y-1 list-fit"></div>
             </section>
 
             <!-- Weekly Column -->
-            <section id="weeklyCol" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
+            <section id="weeklyCol" class="card card-compact flex flex-col">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="flex items-center gap-2 text-sm">
-                        <button id="prevWeek"
-                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">◀</button>
-                        <button id="thisWeekBtn"
-                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">This
-                            week</button>
-                        <button id="nextWeek"
-                            class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100">▶</button>
+                        <button id="prevWeek" class="btn small ghost">◀</button>
+                        <button id="thisWeekBtn" class="btn small ghost">This week</button>
+                        <button id="nextWeek" class="btn small ghost">▶</button>
                         <span id="weeklyRangeLabel" class="ml-2 text-slate-600"></span>
                         <span id="weeklyMetaPill"
                             class="ml-2 text-xs px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200"></span>
                     </div>
-                    <button id="addWeekly"
-                        class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 text-sm">+
-                        Weekly habit</button>
+                    <button id="addWeekly" class="btn primary small">+ Weekly</button>
                 </div>
-                <div id="weeklyList" class="mt-3 space-y-2 max-h-[36vh] overflow-auto pr-1"></div>
+                <div id="weeklyList" class="mt-2 space-y-1 list-fit"></div>
                 <!-- Weekly Notes -->
-                <div class="mt-3">
+                <div class="mt-2">
                     <div class="flex items-center justify-between">
                         <h4 class="text-sm font-semibold text-slate-800">Notes for this week</h4>
                         <span id="notesSaved" class="text-[11px] text-slate-500"></span>
                     </div>
                     <textarea id="weekNotes" placeholder="Reflections, wins, blockers…"
-                        class="mt-2 w-full min-h-[90px] rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 p-2 text-sm"></textarea>
+                        class="mt-1 w-full min-h-[56px] rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 p-2 text-sm"></textarea>
                 </div>
+            </section>
+
+            <!-- Responsibilities Column (moved into main grid) -->
+            <section id="responsibilitiesCol" class="card card-compact flex flex-col">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-800">Responsibilities (hours)</h3>
+                    <div class="flex items-center gap-2">
+                        <button id="addRespBtn" onclick="addResponsibility()" class="btn primary small">+ Add</button>
+                    </div>
+                </div>
+                <div id="respList" class="mt-2 space-y-2 list-fit"></div>
+                <p class="mt-2 text-[11px] text-slate-500">Click a day cell to enter hours for that responsibility. Expected hours are weekly totals.</p>
             </section>
         </div>
 
@@ -294,7 +406,7 @@
         const LS_ENC = 'habitTrackerV1_enc';       // encrypted {iv, ct}
         const LS_META = 'habitTrackerV1_meta';     // {salt, iterations}
 
-        const initialState = { habits: [], completions: { daily: {}, weekly: {} }, notes: { weekly: {} } };
+    const initialState = { habits: [], completions: { daily: {}, weekly: {} }, notes: { weekly: {} }, responsibilities: {}, respEntries: {} };
 
         function loadPlain() {
             try { return JSON.parse(localStorage.getItem(LS_KEY)) || structuredClone(initialState); }
@@ -358,6 +470,62 @@
             state.habits.push({ id: uid(), title, type, createdAt: Date.now(), order: Date.now() });
             save(); renderAll();
         }
+
+        // Responsibilities: each has id, title, expectedHours (weekly)
+        function addResponsibility() {
+            state.responsibilities = state.responsibilities || {};
+            state.respEntries = state.respEntries || {};
+            const formId = 'resp-new-form';
+            if (document.getElementById(formId)) {
+                document.getElementById(formId).querySelector('input')?.focus();
+                return;
+            }
+            const form = el(`
+                <div id="${formId}" class="card" style="padding:8px; margin-bottom:8px;">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input id="${formId}-title" placeholder="Responsibility name" class="w-full px-2 py-1 rounded border" />
+                        <input id="${formId}-exp" type="number" min="0" step="0.5" value="2" class="w-20 px-2 py-1 rounded border" />
+                        <button id="${formId}-save" class="btn primary small">Add</button>
+                        <button id="${formId}-cancel" class="btn small ghost">Cancel</button>
+                    </div>
+                </div>
+            `);
+            respList.insertBefore(form, respList.firstChild);
+            const inputTitle = document.getElementById(`${formId}-title`);
+            const inputExp = document.getElementById(`${formId}-exp`);
+            const saveBtn = document.getElementById(`${formId}-save`);
+            const cancelBtn = document.getElementById(`${formId}-cancel`);
+            inputTitle.focus();
+            // ensure buttons don't submit any parent form
+            saveBtn.setAttribute('type', 'button');
+            cancelBtn.setAttribute('type', 'button');
+
+            saveBtn.addEventListener('click', async () => {
+                const title = inputTitle.value.trim(); if (!title) { inputTitle.focus(); return; }
+                const exp = parseFloat(inputExp.value) || 0;
+                const id = uid();
+                state.responsibilities[id] = { id, title, expectedHours: exp };
+                state.respEntries[id] = {};
+                try {
+                    await save(); renderAll();
+                } catch (err) {
+                    console.error('Failed saving responsibility:', err);
+                    alert('Failed to save responsibility: ' + (err && err.message ? err.message : String(err)));
+                }
+            });
+            cancelBtn.addEventListener('click', () => { form.remove(); });
+        }
+        function editResponsibility(id) {
+            const r = state.responsibilities[id]; if (!r) return;
+            const next = prompt('Rename responsibility:', r.title)?.trim(); if (!next) return;
+            const exp = parseFloat(prompt('Expected hours this week (number):', String(r.expectedHours)) || '0') || 0;
+            r.title = next; r.expectedHours = exp; save(); renderAll();
+        }
+        function deleteResponsibility(id) {
+            const r = state.responsibilities[id]; if (!r) return;
+            if (!confirm(`Delete responsibility “${r.title}”?`)) return;
+            delete state.responsibilities[id]; delete state.respEntries[id]; save(); renderAll();
+        }
         function editHabit(id) {
             const h = state.habits.find(h => h.id === id); if (!h) return;
             const next = prompt('Rename habit:', h.title)?.trim();
@@ -416,6 +584,7 @@
         const addDailyBtn = document.getElementById('addDaily');
         const addWeeklyBtn = document.getElementById('addWeekly');
 
+
         const weekBar = document.getElementById('weekBar');
         const weekBarLabel = document.getElementById('weekBarLabel');
         const weekPct = document.getElementById('weekPct');
@@ -423,6 +592,8 @@
         const passBtn = document.getElementById('passBtn');
         const exportBtn = document.getElementById('exportBtn');
         const importInput = document.getElementById('importInput');
+    const addRespBtn = document.getElementById('addRespBtn');
+    const respList = document.getElementById('respList');
 
         const weekNotesEl = document.getElementById('weekNotes');
         const notesSaved = document.getElementById('notesSaved');
@@ -431,6 +602,7 @@
         let viewWeekDay = dFromISO(toISODate(new Date()));
         let chart;
         let notesDebounce;
+    // resp view week pointer uses viewWeekDay
 
         function renderHeader() {
             const dt = dFromISO(toISODate(new Date()));
@@ -526,6 +698,86 @@
             weeklyMetaPill.textContent = `W${overall}${q ? ` • ${q.id} w${weekInQ}` : ''}`;
         }
 
+                // Responsibilities rendering
+                function renderResponsibilities() {
+                        respList.innerHTML = '';
+                        const respKeys = Object.keys(state.responsibilities || {});
+                        if (respKeys.length === 0) {
+                                respList.appendChild(el(`<div class="text-sm text-slate-500">No responsibilities yet.</div>`));
+                                return;
+                        }
+                        const mon = startOfWeek(viewWeekDay);
+                        for (const id of respKeys) {
+                                const r = state.responsibilities[id];
+                                const entries = state.respEntries[id] || {};
+                                // compute weekly totals and per-day values
+                                const days = [];
+                                let total = 0;
+                                for (let i = 0; i < 7; i++) {
+                                        const iso = toISODate(addDays(mon, i));
+                                        const v = parseFloat(entries[iso]) || 0; days.push({ iso, v }); total += v;
+                                }
+
+                                // removed per-day chips/buttons — using continuous bar only
+
+                                const row = el(`
+                                    <div class="resp-card">
+                                        <div class="resp-grid">
+                                            <div class="resp-left">
+                                                <div class="resp-title">${r.title}</div>
+                                                <div class="resp-summary">${total}h / ${r.expectedHours}h</div>
+                                            </div>
+                                            <div class="resp-center"></div>
+                                            <div class="resp-right">
+                                                <input type="number" min="0" step="0.5" value="${r.expectedHours}" class="resp-exp-input" data-exp>
+                                                <div class="resp-actions" style="display:flex; gap:8px;">
+                                                    <button class="resp-link" data-edit title="Rename">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21h3.75L17.81 9.94l-3.75-3.75L3 17.25V21z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                    </button>
+                                                    <button class="resp-link danger" data-del title="Delete">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="resp-cont-bar" aria-hidden="true"></div>
+                                    </div>
+                                `);
+
+                                // per-day chips removed; hover summary disabled as requested
+
+                                row.querySelector('[data-edit]').addEventListener('click', () => editResponsibility(id));
+                                row.querySelector('[data-del]').addEventListener('click', () => deleteResponsibility(id));
+                                row.querySelector('[data-exp]').addEventListener('change', (e) => { r.expectedHours = parseFloat(e.target.value) || 0; save(); renderAll(); });
+
+                                // render continuous per-day stacked bar (day colors show the spread)
+                                const contBar = row.querySelector('.resp-cont-bar');
+                                if (contBar) {
+                                    contBar.innerHTML = '';
+                                    const expected = Math.max(1, r.expectedHours || 0);
+                                    for (let i = 0; i < days.length; i++) {
+                                        const d = days[i];
+                                        const pct = Math.max(0, Math.min(100, Math.round((d.v / expected) * 100)));
+                                        const widthStyle = d.v > 0 && pct < 1 ? 'width:1px' : `width:${pct}%`;
+                                        const weekday = WEEKDAY[addDays(mon, i).getDay()].slice(0,3);
+                                        const seg = el(`<div class="resp-day-seg day-col-${i}" title="${weekday}: ${d.v}h" style="${widthStyle}"></div>`);
+                                        // allow clicking the segment to edit hours for that day
+                                        seg.addEventListener('click', () => {
+                                            const iso = d.iso;
+                                            const cur = parseFloat(state.respEntries[id]?.[iso]) || 0;
+                                            const v = parseFloat(prompt(`Hours logged on ${weekday} for ${r.title}:`, String(cur)) || '0') || 0;
+                                            state.respEntries[id] = state.respEntries[id] || {};
+                                            if (v <= 0) delete state.respEntries[id][iso]; else state.respEntries[id][iso] = v;
+                                            save(); renderAll();
+                                        });
+                                        contBar.appendChild(seg);
+                                    }
+                                }
+
+                                respList.appendChild(row);
+                        }
+                }
+
         // Progress
         function computeWeekProgress(monday) {
             const allDaily = state.habits.filter(h => h.type === 'daily');
@@ -590,6 +842,7 @@
             renderHeader();
             renderDaily();
             renderWeekly();
+            renderResponsibilities();
             updateProgressBits();
         }
 
@@ -671,6 +924,7 @@
 
         addDailyBtn.addEventListener('click', () => addHabit('daily'));
         addWeeklyBtn.addEventListener('click', () => addHabit('weekly'));
+    if (addRespBtn) addRespBtn.addEventListener('click', () => addResponsibility());
 
         passBtn.addEventListener('click', async () => {
             if (!passEnabled) {
@@ -756,6 +1010,8 @@
 
             // Back-compat for older saves (no notes field)
             state.notes = state.notes || { weekly: {} };
+            state.responsibilities = state.responsibilities || {};
+            state.respEntries = state.respEntries || {};
 
             updatePassBtn();
             renderAll();
