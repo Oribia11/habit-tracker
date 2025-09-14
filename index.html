@@ -61,12 +61,12 @@
         }
 
         #app {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 14px;
+            padding: 16px;
             display: grid;
             grid-template-rows: auto auto 1fr;
-            gap: 12px;
+            gap: 14px;
         }
 
         /* ---------- cards / buttons ---------- */
@@ -75,7 +75,7 @@
             border: 1px solid rgba(15, 23, 42, .06);
             border-radius: var(--radius);
             box-shadow: 0 6px 18px rgba(15, 23, 42, .04);
-            padding: 12px;
+            padding: 16px;
         }
 
         .card-title {
@@ -130,12 +130,62 @@
             max-height: calc(100vh - 220px);
         }
 
+        /* Main grid override: make the responsibilities column narrower and the middle column flexible */
+        #mainGrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 360px;
+            gap: 12px;
+        }
+
+        /* Responsibilities list sizing inside its card */
+        #respList {
+            max-height: calc(100vh - 420px);
+            overflow: auto;
+            padding-right: 6px;
+            /* room for scrollbar */
+        }
+
+        /* Slight visual refinement for card titles */
+        .card-title {
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        /* Make popovers responsive on narrow screens */
+        @media (max-width: 900px) {
+            #mainGrid {
+                grid-template-columns: 1fr;
+            }
+
+            .resp-item {
+                padding-right: 12px;
+            }
+
+            .resp-actions {
+                right: 8px;
+                top: 8px;
+            }
+
+            .popover {
+                left: 12px;
+                right: 12px;
+                width: auto;
+                box-sizing: border-box;
+            }
+
+            .card {
+                padding: 12px;
+            }
+        }
+
         /* ---------- responsibilities UI ---------- */
         .resp-item {
             position: relative;
             border: 1px solid rgba(15, 23, 42, .05);
             border-radius: 10px;
             padding: 12px;
+            /* leave space for action icons to the right so they don't overlap the title */
+            padding-right: 56px;
             background: #fff
         }
 
@@ -151,6 +201,14 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis
+        }
+
+        .resp-meta {
+            font-size: 12px;
+            color: var(--muted);
+            margin-left: 8px;
+            white-space: nowrap;
+            font-weight: 600;
         }
 
         .resp-actions {
@@ -205,7 +263,13 @@
 
         .seg {
             height: 100%;
-            float: left
+            float: left;
+            /* interactive: pointer + subtle hover */
+            cursor: pointer;
+        }
+
+        .seg:hover {
+            filter: brightness(.96);
         }
 
         /* widths set inline style */
@@ -298,6 +362,66 @@
                 transform: scale(1)
             }
         }
+
+        /* small slide animations for date navigation feedback */
+        @keyframes slide-left {
+            0% {
+                transform: translateX(8px);
+                opacity: 0;
+            }
+
+            60% {
+                transform: translateX(-4px);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slide-right {
+            0% {
+                transform: translateX(-8px);
+                opacity: 0;
+            }
+
+            60% {
+                transform: translateX(4px);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .nav-anim-left {
+            animation: slide-left .36s cubic-bezier(.2, .9, .2, 1);
+        }
+
+        .nav-anim-right {
+            animation: slide-right .36s cubic-bezier(.2, .9, .2, 1);
+        }
+
+        /* section header helper to avoid wrapping/stacking problems in narrow layouts */
+        .section-head {
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .section-head .pill {
+            white-space: nowrap;
+            /* keep pill on one line */
+            margin-left: 6px;
+        }
+
+        .section-head .btn {
+            flex-shrink: 0;
+            /* keep buttons from collapsing */
+        }
     </style>
 </head>
 
@@ -349,7 +473,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <!-- Daily -->
             <section class="card flex flex-col">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center justify-between gap-2 section-head">
                     <div class="flex items-center gap-2 text-sm">
                         <button id="prevDay" class="btn small ghost">◀</button>
                         <button id="todayBtn" class="btn small ghost">Today</button>
@@ -372,7 +496,7 @@
 
             <!-- Weekly -->
             <section class="card flex flex-col">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center justify-between gap-2 section-head">
                     <div class="flex items-center gap-2 text-sm">
                         <button id="prevWeek" class="btn small ghost">◀</button>
                         <button id="thisWeekBtn" class="btn small ghost">This week</button>
@@ -696,6 +820,12 @@
             return +h.toFixed(2);
         }
 
+        function formatHours(h) {
+            const v = Math.round((Number(h) || 0) * 100) / 100;
+            if (Number.isInteger(v)) return String(v) + 'h';
+            return String(v).replace(/\.0+$/, '') + 'h';
+        }
+
         function renderResponsibilities() {
             respList.innerHTML = '';
             const keys = Object.keys(state.responsibilities || {});
@@ -727,10 +857,13 @@
                 const pct = r.expectedHours > 0 ? Math.min(100, Math.round((total / r.expectedHours) * 100)) : 0;
 
                 const row = el(`
-      <div class="resp-item">
-        <div class="resp-head">
-          <div class="resp-name">${r.title}</div>
-          <div class="resp-actions">
+            <div class="resp-item">
+                <div class="resp-head">
+                    <div style="display:flex; align-items:center; gap:8px">
+                        <div class="resp-name">${r.title}</div>
+                        <div class="resp-meta" data-meta></div>
+                    </div>
+                    <div class="resp-actions">
             <button class="icon-btn" title="Add hours" data-add-hrs>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
@@ -761,7 +894,9 @@
                         const w = Math.max(0, Math.min(remaining, rawW));
                         if (w <= 0) continue;
                         remaining -= w;
-                        const seg = el(`<div class="seg ${DAY_COLORS[i]}" style="width:${w}%"></div>`);
+                        const seg = el(`<div class="seg ${DAY_COLORS[i]}" style="width:${w}%" title="${WEEKDAY[(i + 1) % 7]}: ${dayVals[i]}h"></div>`);
+                        // clicking a segment opens the add popover prefilled for that weekday
+                        seg.addEventListener('click', (ev) => openAddPopover(ev.currentTarget, id, i, null));
                         bar.appendChild(seg);
                         if (remaining <= 0) break;
                     }
@@ -774,10 +909,13 @@
                 row.querySelector('[data-add-hrs]').addEventListener('click', (ev) => openAddPopover(ev.currentTarget, id));
 
                 respList.appendChild(row);
+                // fill in the meta (completed/expected)
+                const metaEl = row.querySelector('[data-meta]');
+                if (metaEl) metaEl.textContent = `${formatHours(total)} / ${formatHours(expected)}`;
             }
         }
 
-        function openAddPopover(anchorBtn, id) {
+        function openAddPopover(anchorBtn, id, preDay = null, preHours = null) {
             closeAnyPopover();
 
             const container = anchorBtn.closest('.resp-item');
@@ -806,7 +944,8 @@
             const today = new Date();
             let dow = today.getDay(); // Sun=0..Sat=6
             dow = (dow === 0 ? 6 : dow - 1);
-            pop.querySelector('#pop-day').value = String(dow);
+            pop.querySelector('#pop-day').value = preDay !== null ? String(preDay) : String(dow);
+            if (preHours !== null) pop.querySelector('#pop-hours').value = preHours;
             pop.querySelector('#pop-hours').focus();
 
             function done() { pop.remove(); document.removeEventListener('click', outside); }
@@ -886,13 +1025,23 @@
            Wiring
         ================================================================ */
         function animatePulse(el) { el.classList.add('pulse'); setTimeout(() => el.classList.remove('pulse'), 260); }
-        prevDay.addEventListener('click', () => { viewDay = addDays(viewDay, -1); renderDaily(); animatePulse(dailyDateLabel); });
-        nextDay.addEventListener('click', () => { viewDay = addDays(viewDay, 1); renderDaily(); animatePulse(dailyDateLabel); });
-        todayBtn.addEventListener('click', () => { viewDay = dFromISO(toISODate(new Date())); renderDaily(); animatePulse(dailyDateLabel); });
+        function animateScroll(el, dir) {
+            if (!el) return;
+            const cls = dir === 'left' ? 'nav-anim-left' : 'nav-anim-right';
+            el.classList.remove('nav-anim-left', 'nav-anim-right');
+            // force reflow
+            void el.offsetWidth;
+            el.classList.add(cls);
+            setTimeout(() => el.classList.remove(cls), 420);
+        }
 
-        prevWeek.addEventListener('click', () => { viewWeekDay = addWeeks(viewWeekDay, -1); renderWeekly(); });
-        nextWeek.addEventListener('click', () => { viewWeekDay = addWeeks(viewWeekDay, 1); renderWeekly(); });
-        thisWeekBtn.addEventListener('click', () => { viewWeekDay = dFromISO(toISODate(new Date())); renderWeekly(); animatePulse(weeklyRangeLabel); });
+        prevDay.addEventListener('click', () => { viewDay = addDays(viewDay, -1); renderDaily(); animateScroll(dailyDateLabel, 'right'); });
+        nextDay.addEventListener('click', () => { viewDay = addDays(viewDay, 1); renderDaily(); animateScroll(dailyDateLabel, 'left'); });
+        todayBtn.addEventListener('click', () => { viewDay = dFromISO(toISODate(new Date())); renderDaily(); animateScroll(dailyDateLabel, 'left'); });
+
+        prevWeek.addEventListener('click', () => { viewWeekDay = addWeeks(viewWeekDay, -1); renderWeekly(); animateScroll(weeklyRangeLabel, 'right'); });
+        nextWeek.addEventListener('click', () => { viewWeekDay = addWeeks(viewWeekDay, 1); renderWeekly(); animateScroll(weeklyRangeLabel, 'left'); });
+        thisWeekBtn.addEventListener('click', () => { viewWeekDay = dFromISO(toISODate(new Date())); renderWeekly(); animateScroll(weeklyRangeLabel, 'left'); });
 
         addDailyBtn.addEventListener('click', () => addHabit('daily'));
         addWeeklyBtn.addEventListener('click', () => addHabit('weekly'));
