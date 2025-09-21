@@ -12,6 +12,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
     <style>
+        /* Modern font for a clean look */
+        html,
+        body {
+            font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            letter-spacing: -0.01em;
+        }
+
         /* ---------- tiny resets ---------- */
         input,
         select,
@@ -69,13 +76,42 @@
             gap: 14px;
         }
 
+        /* Main grid override: make the responsibilities column narrower and the middle column flexible */
+        #mainGrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr minmax(320px, 380px);
+            gap: 16px;
+        }
+
+        @media (max-width: 1100px) {
+            #mainGrid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+            #mainGrid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 10px;
+            }
+        }
+
         /* ---------- cards / buttons ---------- */
         .card {
-            background: linear-gradient(180deg, var(--card), #fbfdff);
-            border: 1px solid rgba(15, 23, 42, .06);
+            background: linear-gradient(180deg, #fff, #f6faff 90%);
+            border: 1px solid rgba(15, 23, 42, .07);
             border-radius: var(--radius);
-            box-shadow: 0 6px 18px rgba(15, 23, 42, .04);
-            padding: 16px;
+            box-shadow: 0 4px 24px 0 rgba(16, 185, 129, 0.08), 0 1.5px 6px 0 rgba(15, 23, 42, 0.04);
+            padding: 22px 22px 16px 22px;
+            transition: box-shadow 0.18s cubic-bezier(.4, 0, .2, 1), transform 0.14s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.13), 0 2px 8px 0 rgba(15, 23, 42, 0.07);
+            transform: translateY(-2px) scale(1.012);
         }
 
         .card-title {
@@ -90,31 +126,48 @@
 
         .btn {
             border-radius: 10px;
-            padding: 8px 12px;
-            border: 1px solid rgba(2, 6, 23, .06);
+            padding: 8px 14px;
+            border: 1px solid rgba(2, 6, 23, .08);
             background: #fff;
             font-size: 13px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            cursor: pointer
+            cursor: pointer;
+            font-weight: 500;
+            box-shadow: 0 1px 2px 0 rgba(16, 185, 129, 0.04);
+            transition: background 0.14s, box-shadow 0.14s, color 0.14s, border 0.14s;
         }
 
         .btn.small {
-            padding: 6px 10px;
-            border-radius: 8px
+            padding: 6px 11px;
+            border-radius: 8px;
+            font-size: 12px;
         }
 
         .btn.ghost {
             background: transparent;
             border-color: transparent;
-            color: var(--muted)
+            color: var(--muted);
+            box-shadow: none;
         }
 
         .btn.primary {
             background: linear-gradient(90deg, var(--accent), var(--accent-2));
             color: #fff;
-            border: none
+            border: none;
+            box-shadow: 0 2px 8px 0 rgba(16, 185, 129, 0.10);
+        }
+
+        .btn.primary:hover {
+            filter: brightness(1.08) saturate(1.1);
+            box-shadow: 0 4px 16px 0 rgba(16, 185, 129, 0.16);
+        }
+
+        .btn:not(.ghost):hover {
+            background: #f0fdf4;
+            color: var(--accent);
+            border-color: var(--accent-2);
         }
 
         .pill {
@@ -181,12 +234,19 @@
         /* ---------- responsibilities UI ---------- */
         .resp-item {
             position: relative;
-            border: 1px solid rgba(15, 23, 42, .05);
-            border-radius: 10px;
-            padding: 12px;
+            border: 1px solid rgba(15, 23, 42, .07);
+            border-radius: 12px;
+            padding: 16px 18px 16px 16px;
             /* leave space for action icons to the right so they don't overlap the title */
             padding-right: 56px;
-            background: #fff
+            background: linear-gradient(90deg, #fff 80%, #f0fdf4 100%);
+            box-shadow: 0 2px 8px 0 rgba(16, 185, 129, 0.04);
+            transition: box-shadow 0.14s, border 0.14s;
+        }
+
+        .resp-item:hover {
+            box-shadow: 0 4px 16px 0 rgba(16, 185, 129, 0.10);
+            border-color: var(--accent-2);
         }
 
         .resp-head {
@@ -229,19 +289,22 @@
         }
 
         .icon-btn {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
             display: inline-grid;
             place-items: center;
             background: #fff;
-            border: 1px solid rgba(15, 23, 42, .08);
-            color: #334155;
-            cursor: pointer
+            border: 1px solid rgba(15, 23, 42, .10);
+            color: #10b981;
+            cursor: pointer;
+            transition: background 0.13s, border 0.13s, color 0.13s;
         }
 
         .icon-btn:hover {
-            background: #f8fafc
+            background: #f0fdf4;
+            border-color: var(--accent-2);
+            color: #059669;
         }
 
         /* percent line */
@@ -254,22 +317,24 @@
         }
 
         .bar {
-            height: 12px;
+            height: 13px;
             border-radius: 8px;
             overflow: hidden;
-            background: #e9eef5;
-            position: relative
+            background: linear-gradient(90deg, #e9eef5 70%, #d1fae5 100%);
+            position: relative;
         }
 
         .seg {
             height: 100%;
             float: left;
-            /* interactive: pointer + subtle hover */
             cursor: pointer;
+            opacity: 0.92;
+            transition: filter 0.13s, opacity 0.13s;
         }
 
         .seg:hover {
-            filter: brightness(.96);
+            filter: brightness(1.08) saturate(1.1);
+            opacity: 1;
         }
 
         /* widths set inline style */
@@ -316,17 +381,18 @@
             top: 44px;
             background: #fff;
             border: 1px solid #e6eef2;
-            border-radius: 10px;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
-            padding: 10px;
-            width: 230px;
-            z-index: 10
+            border-radius: 12px;
+            box-shadow: 0 10px 32px rgba(16, 185, 129, 0.10), 0 2px 8px rgba(15, 23, 42, 0.07);
+            padding: 14px 12px 12px 12px;
+            width: 240px;
+            z-index: 10;
+            animation: pulse .22s cubic-bezier(.4, 0, .2, 1);
         }
 
         .row {
             display: flex;
-            gap: 8px;
-            align-items: center
+            gap: 10px;
+            align-items: center;
         }
 
         .row+.row {
@@ -336,16 +402,24 @@
         .popover input,
         .popover select {
             border: 1px solid #e6eef2;
-            background: #fbfdff;
-            padding: 8px;
+            background: #f8fafc;
+            padding: 8px 10px;
             border-radius: 8px;
-            font-size: 13px
+            font-size: 13px;
+            transition: border 0.13s, background 0.13s;
+        }
+
+        .popover input:focus,
+        .popover select:focus {
+            border-color: var(--accent-2);
+            background: #fff;
+            outline: none;
         }
 
         .popover .actions {
             display: flex;
-            gap: 8px;
-            justify-content: flex-end
+            gap: 10px;
+            justify-content: flex-end;
         }
 
         /* Top small nav animations (subtle) */
@@ -410,36 +484,84 @@
         .section-head {
             flex-wrap: wrap;
             align-items: center;
+            margin-bottom: 2px;
         }
 
         .section-head .pill {
             white-space: nowrap;
-            /* keep pill on one line */
             margin-left: 6px;
+            background: linear-gradient(90deg, #d1fae5 60%, #f0fdf4 100%);
+            color: #059669;
+            border: none;
         }
 
         .section-head .btn {
             flex-shrink: 0;
-            /* keep buttons from collapsing */
+        }
+
+        /* Accent for analytics summary */
+        #analyticsSummary {
+            color: #059669 !important;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        /* Add a subtle fade-in for cards */
+        .card {
+            opacity: 0;
+            animation: fadein 0.5s cubic-bezier(.4, 0, .2, 1) 0.05s forwards;
+        }
+
+        @keyframes fadein {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        /* Modernize code font in help text */
+        code {
+            font-family: 'JetBrains Mono', 'Fira Mono', 'Menlo', 'Consolas', monospace;
+            font-size: 12px;
+            background: #f0fdf4;
+            color: #059669;
+            border-radius: 5px;
+            padding: 1px 5px;
         }
     </style>
-</head>
 
 <body>
+
     <div id="app">
-        <!-- Header -->
-        <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px">
-            <div>
-                <div id="dateHeading" class="card-title"></div>
-                <div id="weekMeta" class="sub" style="margin-top:4px"></div>
-                <div id="eventBanner" class="sub" style="margin-top:4px"></div>
+        <!-- Sticky Section Navigation -->
+        <div id="stickyNav" class="card"
+            style="position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,0.97);backdrop-filter:blur(2px);box-shadow:0 2px 8px #0001;">
+            <div style="display:flex;gap:8px;align-items:center">
+                <button id="navDaily" class="btn small ghost">Daily</button>
+                <button id="navWeekly" class="btn small ghost">Weekly</button>
+                <button id="navResp" class="btn small ghost">Responsibilities</button>
             </div>
             <div style="display:flex; gap:8px">
                 <button id="passBtn" class="btn small ghost">Passcode</button>
                 <button id="exportBtn" class="btn small ghost">Export</button>
+                <button id="csvExportBtn" class="btn small ghost" title="Export as CSV">CSV</button>
                 <label class="btn small ghost" style="cursor:pointer">Import
                     <input id="importInput" type="file" accept="application/json" class="hidden" />
                 </label>
+            </div>
+        </div>
+        <!-- Header (moved below sticky nav) -->
+        <div class="card"
+            style="display:flex; align-items:center; justify-content:space-between; gap:12px;margin-top:8px">
+            <div>
+                <div id="dateHeading" class="card-title"></div>
+                <div id="weekMeta" class="sub" style="margin-top:4px"></div>
+                <div id="eventBanner" class="sub" style="margin-top:4px"></div>
             </div>
         </div>
 
@@ -451,6 +573,7 @@
                         <div class="card-title">This week</div>
                         <div id="weekBarLabel" class="sub" style="margin-top:6px">0 / 0 tasks completed this week (0%)
                         </div>
+                        <div id="analyticsSummary" class="sub mt-1" style="font-size:12px;color:#10b981"></div>
                     </div>
                     <div id="weekPct" class="card-title">0%</div>
                 </div>
@@ -470,9 +593,9 @@
         </div>
 
         <!-- Main: Daily | Weekly | Responsibilities -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div id="mainGrid">
             <!-- Daily -->
-            <section class="card flex flex-col">
+            <section id="dailySection" class="card flex flex-col">
                 <div class="flex items-center justify-between gap-2 section-head">
                     <div class="flex items-center gap-2 text-sm">
                         <button id="prevDay" class="btn small ghost">◀</button>
@@ -483,6 +606,7 @@
                     <button id="addDaily" class="btn small primary">+ Daily</button>
                 </div>
                 <div id="dailyList" class="mt-2 space-y-1 list-fit"></div>
+                <div id="addDailyInline" class="mt-2" style="display:none"></div>
                 <div class="mt-3">
                     <div class="flex items-center justify-between">
                         <h4 class="text-sm font-semibold">Notes for this day</h4>
@@ -495,7 +619,7 @@
             </section>
 
             <!-- Weekly -->
-            <section class="card flex flex-col">
+            <section id="weeklySection" class="card flex flex-col">
                 <div class="flex items-center justify-between gap-2 section-head">
                     <div class="flex items-center gap-2 text-sm">
                         <button id="prevWeek" class="btn small ghost">◀</button>
@@ -507,6 +631,7 @@
                     <button id="addWeekly" class="btn small primary">+ Weekly</button>
                 </div>
                 <div id="weeklyList" class="mt-2 space-y-1 list-fit"></div>
+                <div id="addWeeklyInline" class="mt-2" style="display:none"></div>
                 <div class="mt-2">
                     <div class="flex items-center justify-between">
                         <h4 class="text-sm font-semibold">Notes for this week</h4>
@@ -519,7 +644,7 @@
             </section>
 
             <!-- Responsibilities -->
-            <section class="card flex flex-col">
+            <section id="respSection" class="card flex flex-col">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold">Responsibilities (hours)</h3>
                     <button id="addRespBtn" class="btn small primary">+ Add responsibility</button>
@@ -537,6 +662,7 @@
                 </div>
 
                 <div id="respList" class="mt-2 space-y-2 list-fit"></div>
+                <div id="addRespInline" class="mt-2" style="display:none"></div>
                 <p class="mt-2 text-[11px] text-slate-500">
                     Click <b>+</b> on a card to log hours. You can type <code>1h</code>, <code>30m</code>,
                     <code>1:30</code>, or <code>2</code>.
@@ -633,13 +759,49 @@
         function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 
         function addHabit(type) {
-            const title = prompt(`New ${type} habit name:`)?.trim(); if (!title) return;
-            state.habits.push({ id: uid(), title, type, createdAt: Date.now(), order: Date.now() }); save(); renderAll();
+            // Show inline add form
+            const container = type === 'daily' ? document.getElementById('addDailyInline') : document.getElementById('addWeeklyInline');
+            if (!container) return;
+            container.innerHTML = '';
+            container.style.display = '';
+            const form = el(`
+                <form class="flex gap-2 items-center" style="background:#f8fafc;padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb">
+                    <input class="flex-1 px-2 py-1 rounded border border-slate-300 text-sm" placeholder="New ${type} habit name" required maxlength="48" autofocus>
+                    <button type="submit" class="btn small primary">Add</button>
+                    <button type="button" class="btn small" data-cancel>Cancel</button>
+                </form>
+            `);
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                const title = form.querySelector('input').value.trim();
+                if (!title) return;
+                state.habits.push({ id: uid(), title, type, createdAt: Date.now(), order: Date.now() });
+                save();
+                container.style.display = 'none';
+                renderAll();
+            };
+            form.querySelector('[data-cancel]').onclick = () => { container.style.display = 'none'; };
+            container.appendChild(form);
+            form.querySelector('input').focus();
         }
         function editHabit(id) {
+            // Inline edit for habit
             const h = state.habits.find(h => h.id === id); if (!h) return;
-            const next = prompt('Rename habit:', h.title)?.trim(); if (!next) return;
-            h.title = next; save(); renderAll();
+            // Find the row in dailyList or weeklyList
+            const row = document.querySelector(`[data-habit-id="${id}"]`);
+            if (!row) return;
+            // Replace label with input
+            const label = row.querySelector('label span');
+            const orig = h.title;
+            const input = el(`<input class="px-2 py-1 rounded border border-slate-300 text-sm" style="width:140px" maxlength="48">`);
+            input.value = orig;
+            label.replaceWith(input);
+            input.focus();
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') { h.title = input.value.trim() || orig; save(); renderAll(); }
+                if (e.key === 'Escape') { renderAll(); }
+            };
+            input.onblur = () => { h.title = input.value.trim() || orig; save(); renderAll(); };
         }
         function deleteHabit(id) {
             const h = state.habits.find(h => h.id === id); if (!h) return;
@@ -652,14 +814,80 @@
 
         /* ---------------- responsibilities ---------------- */
         function addResponsibility() {
-            const title = prompt('Responsibility name (e.g., POLAR):')?.trim(); if (!title) return;
-            const exp = parseFloat(prompt('Expected hours per week:', '2') || '0') || 0;
-            const id = uid(); (state.responsibilities ||= {})[id] = { id, title, expectedHours: exp }; (state.respEntries ||= {})[id] = {};
-            save(); renderAll();
+            // Improved vertical layout for inline add form
+            const container = document.getElementById('addRespInline');
+            if (!container) return;
+            container.innerHTML = '';
+            container.style.display = '';
+            const form = el(`
+                                <form style="background:#f8fafc;padding:14px 16px;border-radius:10px;border:1px solid #e5e7eb;max-width:420px;box-shadow:0 2px 8px #0001">
+                                    <div style="display:flex;flex-direction:column;gap:10px">
+                                        <div style="display:flex;flex-direction:column;gap:4px">
+                                            <label class="sub" style="font-size:13px">Responsibility name</label>
+                                            <input class="px-2 py-1 rounded border border-slate-300 text-sm" placeholder="e.g., POLAR" required maxlength="48" autofocus>
+                                        </div>
+                                        <div style="display:flex;flex-direction:column;gap:4px">
+                                            <label class="sub" style="font-size:13px">Expected hours per week</label>
+                                            <input type="number" min="0" step="0.25" class="px-2 py-1 rounded border border-slate-300 text-sm" placeholder="e.g., 2" required>
+                                        </div>
+                                        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
+                                            <button type="submit" class="btn small primary">Add</button>
+                                            <button type="button" class="btn small" data-cancel>Cancel</button>
+                                        </div>
+                                    </div>
+                                </form>
+                        `);
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                const title = form.querySelector('input[type="text"],input:not([type])').value.trim();
+                const exp = parseFloat(form.querySelector('input[type="number"]').value) || 0;
+                if (!title) return;
+                const id = uid();
+                (state.responsibilities ||= {})[id] = { id, title, expectedHours: exp };
+                (state.respEntries ||= {})[id] = {};
+                save();
+                container.style.display = 'none';
+                renderAll();
+            };
+            form.querySelector('[data-cancel]').onclick = () => { container.style.display = 'none'; };
+            container.appendChild(form);
+            form.querySelector('input').focus();
         }
         function renameResponsibility(id) {
             const r = state.responsibilities[id]; if (!r) return;
-            const n = prompt('Rename:', r.title)?.trim(); if (!n) return; r.title = n; save(); renderAll();
+            closeAnyPopover();
+            const container = document.querySelector(`.resp-item:has([data-rename])`);
+            const pop = el(`
+        <div class="popover" style="min-width:210px">
+            <div class="row">
+                <label class="sub" style="min-width:68px">Name</label>
+                <input id="pop-title" class="flex-1" value="${r.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}">
+            </div>
+            <div class="row">
+                <label class="sub" style="min-width:68px">Expected</label>
+                <input id="pop-exp" class="flex-1" type="number" min="0" step="0.25" value="${r.expectedHours}">
+                <span class="sub">h/wk</span>
+            </div>
+            <div class="row actions">
+                <button class="btn small" data-cancel>Cancel</button>
+                <button class="btn small primary" data-save>Save</button>
+            </div>
+        </div>
+    `);
+            container.appendChild(pop);
+            pop.querySelector('#pop-title').focus();
+            function done() { pop.remove(); document.removeEventListener('click', outside); }
+            function outside(e) { if (!pop.contains(e.target)) done(); }
+            document.addEventListener('click', outside, { capture: true });
+            pop.querySelector('[data-cancel]').addEventListener('click', done);
+            pop.querySelector('[data-save]').addEventListener('click', async () => {
+                const n = pop.querySelector('#pop-title').value.trim();
+                const exp = parseFloat(pop.querySelector('#pop-exp').value) || 0;
+                if (!n) return;
+                r.title = n;
+                r.expectedHours = exp;
+                await save(); renderResponsibilities(); done();
+            });
         }
         function deleteResponsibility(id) {
             const r = state.responsibilities[id]; if (!r) return;
@@ -735,19 +963,20 @@
             const habits = state.habits.filter(h => h.type === 'daily').sort((a, b) => a.order - b.order);
             const done = state.completions.daily[iso] || {};
             dailyList.innerHTML = '';
+            document.getElementById('addDailyInline').style.display = 'none';
             if (habits.length === 0) dailyList.appendChild(el(`<div class="sub">No daily habits yet.</div>`));
             for (const h of habits) {
                 const row = el(`
-      <div class="group flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2 bg-white">
-        <label class="flex items-center gap-3 text-sm">
-          <input type="checkbox" class="h-5 w-5 rounded border-slate-300" ${done[h.id] ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
-          <span>${h.title}</span>
-        </label>
-        <div class="invisible group-hover:visible flex items-center gap-1">
-          <button class="btn small" data-edit>Edit</button>
-          <button class="btn small" style="color:var(--danger);border-color:#ffd1d1;background:#fff5f5" data-del>Delete</button>
-        </div>
-      </div>`);
+            <div class="group flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2 bg-white" data-habit-id="${h.id}">
+                <label class="flex items-center gap-3 text-sm">
+                    <input type="checkbox" class="h-5 w-5 rounded border-slate-300" ${done[h.id] ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+                    <span>${h.title}</span>
+                </label>
+                <div class="invisible group-hover:visible flex items-center gap-1">
+                    <button class="btn small" data-edit>Edit</button>
+                    <button class="btn small" style="color:var(--danger);border-color:#ffd1d1;background:#fff5f5" data-del>Delete</button>
+                </div>
+            </div>`);
                 row.querySelector('input').addEventListener('change', e => toggleDaily(h.id, iso, e.target.checked));
                 row.querySelector('[data-edit]').addEventListener('click', () => editHabit(h.id));
                 row.querySelector('[data-del]').addEventListener('click', () => deleteHabit(h.id));
@@ -768,19 +997,20 @@
             const habits = state.habits.filter(h => h.type === 'weekly').sort((a, b) => a.order - b.order);
             const done = state.completions.weekly[wk] || {};
             weeklyList.innerHTML = '';
+            document.getElementById('addWeeklyInline').style.display = 'none';
             if (habits.length === 0) weeklyList.appendChild(el(`<div class="sub">No weekly habits yet.</div>`));
             for (const h of habits) {
                 const row = el(`
-      <div class="group flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2 bg-white">
-        <label class="flex items-center gap-3 text-sm">
-          <input type="checkbox" class="h-5 w-5 rounded border-slate-300" ${done[h.id] ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
-          <span>${h.title}</span>
-        </label>
-        <div class="invisible group-hover:visible flex items-center gap-1">
-          <button class="btn small" data-edit>Edit</button>
-          <button class="btn small" style="color:var(--danger);border-color:#ffd1d1;background:#fff5f5" data-del>Delete</button>
-        </div>
-      </div>`);
+            <div class="group flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2 bg-white" data-habit-id="${h.id}">
+                <label class="flex items-center gap-3 text-sm">
+                    <input type="checkbox" class="h-5 w-5 rounded border-slate-300" ${done[h.id] ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+                    <span>${h.title}</span>
+                </label>
+                <div class="invisible group-hover:visible flex items-center gap-1">
+                    <button class="btn small" data-edit>Edit</button>
+                    <button class="btn small" style="color:var(--danger);border-color:#ffd1d1;background:#fff5f5" data-del>Delete</button>
+                </div>
+            </div>`);
                 row.querySelector('input').addEventListener('change', e => toggleWeekly(h.id, wk, e.target.checked));
                 row.querySelector('[data-edit]').addEventListener('click', () => editHabit(h.id));
                 row.querySelector('[data-del]').addEventListener('click', () => deleteHabit(h.id));
@@ -904,15 +1134,67 @@
                 // if no expected, leave empty bar; percent stays 0.
 
                 // action handlers
-                row.querySelector('[data-rename]').addEventListener('click', () => renameResponsibility(id));
-                row.querySelector('[data-del]').addEventListener('click', () => deleteResponsibility(id));
-                row.querySelector('[data-add-hrs]').addEventListener('click', (ev) => openAddPopover(ev.currentTarget, id));
+                row.querySelector('[data-rename]').addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    renameResponsibility(id);
+                });
+                row.querySelector('[data-del]').addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    deleteResponsibility(id);
+                });
+                row.querySelector('[data-add-hrs]').addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    openAddPopover(ev.currentTarget, id);
+                });
+                // Tooltips for all action icons
+                row.querySelector('[data-rename]').setAttribute('tabindex', '0');
+                row.querySelector('[data-rename]').setAttribute('aria-label', 'Rename responsibility');
+                row.querySelector('[data-del]').setAttribute('tabindex', '0');
+                row.querySelector('[data-del]').setAttribute('aria-label', 'Delete responsibility');
+                row.querySelector('[data-add-hrs]').setAttribute('tabindex', '0');
+                row.querySelector('[data-add-hrs]').setAttribute('aria-label', 'Add hours');
 
                 respList.appendChild(row);
                 // fill in the meta (completed/expected)
                 const metaEl = row.querySelector('[data-meta]');
-                if (metaEl) metaEl.textContent = `${formatHours(total)} / ${formatHours(expected)}`;
+                if (metaEl) {
+                    metaEl.textContent = `${formatHours(total)} / ${formatHours(expected)}`;
+                    if (expected > 0 && total > expected) {
+                        metaEl.style.color = '#10b981';
+                        metaEl.title = `Logged hours exceed expected (${formatHours(total)} > ${formatHours(expected)})`;
+                    } else {
+                        metaEl.style.color = '';
+                        metaEl.title = '';
+                    }
+                }
             }
+        }
+        // --- Analytics: streak and average ---
+        function computeStreak() {
+            // Returns the current streak (weeks in a row with 100% completion)
+            const todayMon = startOfWeek(new Date());
+            let streak = 0;
+            for (let i = 0; ; i++) {
+                const wkMon = addWeeks(todayMon, -i);
+                const { pct, den } = computeWeekProgress(wkMon);
+                if (den === 0 || pct < 100) break;
+                streak++;
+            }
+            return streak;
+        }
+
+        function computeWeeklyAverage(numWeeks = 8) {
+            // Returns average completion % over last numWeeks (default 8)
+            const todayMon = startOfWeek(new Date());
+            let sum = 0, count = 0;
+            for (let i = 0; i < numWeeks; i++) {
+                const wkMon = addWeeks(todayMon, -i);
+                const { pct, den } = computeWeekProgress(wkMon);
+                if (den === 0) continue;
+                sum += pct;
+                count++;
+            }
+            return count ? Math.round(sum / count) : 0;
         }
 
         function openAddPopover(anchorBtn, id, preDay = null, preHours = null) {
@@ -994,6 +1276,23 @@
             weekBar.style.width = pct + '%';
             weekBarLabel.textContent = `${num} / ${den} tasks completed this week (${pct}%)`;
             weekPct.textContent = pct + '%';
+            // --- Analytics summary ---
+            const streak = computeStreak();
+            const avg = computeWeeklyAverage();
+            const analyticsSummary = document.getElementById('analyticsSummary');
+            if (analyticsSummary) {
+                // --- Badges ---
+                let badges = "";
+                if (streak >= 3) {
+                    badges += `<span title='Streak badge: ${streak} weeks 100%'><svg style='display:inline;margin-bottom:-2px' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#10b981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10' fill='#d1fae5'/><path d='M8 13l2.5 2.5L16 10'/></svg> <b>${streak}w streak!</b></span> `;
+                }
+                if (pct === 100 && den > 0) {
+                    badges += `<span title='100% this week'><svg style='display:inline;margin-bottom:-2px' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#f59e0b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10' fill='#fef9c3'/><path d='M12 7v5l3 3'/></svg> <b>100% this week!</b></span> `;
+                }
+                analyticsSummary.innerHTML =
+                    `${badges}<span title='Weeks in a row with 100% completion'>Streak: <b>${streak}</b></span> &nbsp;·&nbsp; ` +
+                    `<span title='Average completion % over last 8 weeks'>Avg: <b>${avg}%</b></span>`;
+            }
             drawTrend();
         }
 
@@ -1047,6 +1346,17 @@
         addWeeklyBtn.addEventListener('click', () => addHabit('weekly'));
         addRespBtn.addEventListener('click', () => addResponsibility());
 
+        // Sticky nav section scroll
+        document.getElementById('navDaily').onclick = () => {
+            document.getElementById('dailySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        document.getElementById('navWeekly').onclick = () => {
+            document.getElementById('weeklySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        document.getElementById('navResp').onclick = () => {
+            document.getElementById('respSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
         /* ---- passcode actions (kept minimal; same behaviour you had) ---- */
         async function setPasscode() {
             if (passEnabled) { alert('Passcode already set.'); return; }
@@ -1082,11 +1392,59 @@
             else if (a.startsWith('remove')) { await removePasscode(); updatePassBtn(); }
         });
 
+
         exportBtn.addEventListener('click', async () => {
             function download(name, text) { const blob = new Blob([text], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1500); }
             if (passEnabled && !passKey) { alert('Unlock first.'); return; }
             if (passEnabled && passKey) { const bundle = await encryptJSON(state, passKey); download('habit-tracker-backup.enc.json', JSON.stringify({ enc: bundle, meta }, null, 2)); }
             else download('habit-tracker-backup.json', JSON.stringify(state, null, 2));
+        });
+
+        // --- CSV Export ---
+        document.getElementById('csvExportBtn').addEventListener('click', () => {
+            function toCSV(rows) {
+                return rows.map(r => r.map(x => '"' + String(x).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+            }
+            const rows = [];
+            // Habits completions
+            rows.push(['Type', 'Habit/Resp', 'Date/Week', 'Completed/Hours']);
+            // Daily habits
+            for (const h of state.habits.filter(h => h.type === 'daily')) {
+                for (const date in state.completions.daily) {
+                    const done = state.completions.daily[date][h.id];
+                    if (done !== undefined) rows.push(['Daily', h.title, date, done ? 'Yes' : 'No']);
+                }
+            }
+            // Weekly habits
+            for (const h of state.habits.filter(h => h.type === 'weekly')) {
+                for (const week in state.completions.weekly) {
+                    const done = state.completions.weekly[week][h.id];
+                    if (done !== undefined) rows.push(['Weekly', h.title, week, done ? 'Yes' : 'No']);
+                }
+            }
+            // Responsibilities
+            for (const id in state.responsibilities) {
+                const r = state.responsibilities[id];
+                for (const date in (state.respEntries[id] || {})) {
+                    const hours = state.respEntries[id][date];
+                    rows.push(['Responsibility', r.title, date, hours]);
+                }
+            }
+            // Notes (optional)
+            for (const date in (state.notes.daily || {})) {
+                if (state.notes.daily[date]) rows.push(['Note (Daily)', '', date, state.notes.daily[date]]);
+            }
+            for (const week in (state.notes.weekly || {})) {
+                if (state.notes.weekly[week]) rows.push(['Note (Weekly)', '', week, state.notes.weekly[week]]);
+            }
+            const csv = toCSV(rows);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'habit-tracker-export.csv';
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
         });
 
         importInput.addEventListener('change', async (e) => {
