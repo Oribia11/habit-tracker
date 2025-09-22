@@ -1242,8 +1242,7 @@
                 const mon = startOfWeek(viewWeekDay);
                 const iso = toISODate(addDays(mon, dayIndex));
                 state.respEntries[id] = state.respEntries[id] || {};
-                const prev = parseFloat(state.respEntries[id][iso]) || 0;
-                state.respEntries[id][iso] = +(prev + amount).toFixed(2); // accumulate
+                state.respEntries[id][iso] = +amount.toFixed(2); // overwrite, not accumulate
                 await save(); renderResponsibilities(); done();
             });
         }
